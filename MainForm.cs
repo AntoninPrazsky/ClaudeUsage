@@ -6,11 +6,11 @@ namespace ClaudeUsage;
 public sealed class MainForm : Form
 {
     private const int ContentWidth = 420;
-    private const int RefreshIntervalMs = 60_000;
+    private static readonly TimeSpan MaxBackoff = TimeSpan.FromMinutes(30);
 
     private readonly AppSettings _settings = AppSettings.Load();
     private readonly UsageClient _client = new();
-    private readonly System.Windows.Forms.Timer _fetchTimer = new() { Interval = RefreshIntervalMs };
+    private readonly System.Windows.Forms.Timer _fetchTimer = new();
     private readonly System.Windows.Forms.Timer _tickTimer = new() { Interval = 1_000 };
     private readonly Icon? _appIcon;
 
@@ -27,6 +27,10 @@ public sealed class MainForm : Form
     private readonly ToolStripMenuItem _scaleMenu = new();
     private static readonly int[] ScaleOptions = { 100, 110, 120, 130, 150 };
     private readonly Dictionary<int, ToolStripMenuItem> _scaleItems = new();
+    private readonly ToolStripMenuItem _intervalMenu = new();
+    // The endpoint refills roughly one request per 150 s per token, so nothing below 3 minutes is offered.
+    private static readonly int[] IntervalOptions = { 180, 300, 600, 900, 1800 };
+    private readonly Dictionary<int, ToolStripMenuItem> _intervalItems = new();
     private readonly ToolStripMenuItem _topMostItem = new() { CheckOnClick = true };
     private readonly ToolStripMenuItem _minimizeItem = new();
     private readonly ToolStripMenuItem _exitItem = new();
@@ -61,6 +65,8 @@ public sealed class MainForm : Form
     private UsageSnapshot? _snapshot;
     private DateTime _nextFetch = DateTime.Now;
     private bool _busy;
+    private bool _rateLimited;
+    private int _rateLimitStrikes;
     private float _scale = 1f;
 
     public MainForm()
@@ -89,7 +95,11 @@ public sealed class MainForm : Form
         ApplyTheme();
         ApplyScale();
 
-        _fetchTimer.Tick += async (_, _) => await FetchAsync();
+        _fetchTimer.Tick += async (_, _) =>
+        {
+            _fetchTimer.Stop(); // one-shot: FetchAsync schedules the next run
+            await FetchAsync();
+        };
         _tickTimer.Tick += (_, _) => OnTick();
         SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 
@@ -97,7 +107,6 @@ public sealed class MainForm : Form
         {
             _tickTimer.Start();
             await FetchAsync();
-            _fetchTimer.Start();
         };
         FormClosed += (_, _) =>
         {
@@ -145,6 +154,15 @@ public sealed class MainForm : Form
             _scaleMenu.DropDownItems.Add(item);
         }
 
+        foreach (var seconds in IntervalOptions)
+        {
+            var item = new ToolStripMenuItem($"{seconds / 60} min");
+            item.Click += (_, _) => SetRefreshInterval(seconds);
+            _intervalItems[seconds] = item;
+            _intervalMenu.DropDownItems.Add(item);
+        }
+        UpdateIntervalChecks();
+
         _topMostItem.Checked = _settings.TopMost;
         _topMostItem.CheckedChanged += (_, _) =>
         {
@@ -156,7 +174,7 @@ public sealed class MainForm : Form
         _exitItem.Click += (_, _) => Close();
 
         _settingsMenu.DropDownItems.AddRange(
-            _languageMenu, _themeMenu, _scaleMenu, _topMostItem, new ToolStripSeparator(), _minimizeItem, _exitItem);
+            _languageMenu, _themeMenu, _scaleMenu, _intervalMenu, _topMostItem, new ToolStripSeparator(), _minimizeItem, _exitItem);
         _menu.Items.Add(_settingsMenu);
         MainMenuStrip = _menu;
         Controls.Add(_menu);
@@ -244,6 +262,10 @@ public sealed class MainForm : Form
         _footer.Controls.Add(_status, 0, 0);
         _footer.Controls.Add(_refreshButton, 1, 0);
 
+        // Rows stay hidden until the first successful fetch.
+        _sessionRow.Visible = false;
+        _weeklySection.Visible = false;
+
         _root.Controls.Add(_header);
         _root.Controls.Add(_sessionRow);
         _root.Controls.Add(_weeklySection);
@@ -283,6 +305,7 @@ public sealed class MainForm : Form
         _themeLight.Text = L.Get("theme.light");
         _themeDark.Text = L.Get("theme.dark");
         _scaleMenu.Text = L.Get("menu.scale");
+        _intervalMenu.Text = L.Get("menu.refreshInterval");
         _topMostItem.Text = L.Get("menu.topMost");
         _minimizeItem.Text = L.Get("menu.minimizeToTray");
         _exitItem.Text = L.Get("menu.exit");
@@ -483,14 +506,29 @@ public sealed class MainForm : Form
     {
         if (_busy) return;
         _busy = true;
+        _fetchTimer.Stop();
         _refreshButton.Enabled = false;
         _trayRefresh.Enabled = false;
         _status.Text = L.Get("status.loading");
+        var delay = _settings.ResolveRefreshInterval();
         try
         {
             _snapshot = await _client.FetchAsync(CancellationToken.None);
+            _rateLimited = false;
+            _rateLimitStrikes = 0;
             _error.Visible = false;
             Render(_snapshot);
+        }
+        catch (RateLimitedException ex)
+        {
+            // Keep the last values on screen and back off: double the interval per consecutive 429,
+            // honor Retry-After when the server sends a real value, cap at MaxBackoff.
+            _rateLimited = true;
+            _rateLimitStrikes = Math.Min(_rateLimitStrikes + 1, 6);
+            delay = TimeSpan.FromSeconds(delay.TotalSeconds * Math.Pow(2, _rateLimitStrikes));
+            if (ex.RetryAfter is { } retryAfter && retryAfter > delay) delay = retryAfter;
+            if (delay > MaxBackoff) delay = MaxBackoff;
+            _error.Visible = false;
         }
         catch (UsageException ex)
         {
@@ -505,9 +543,38 @@ public sealed class MainForm : Form
             _busy = false;
             _refreshButton.Enabled = true;
             _trayRefresh.Enabled = true;
-            _nextFetch = DateTime.Now.AddMilliseconds(RefreshIntervalMs);
+            ScheduleNextFetch(delay);
             UpdateStatus();
             UpdateTray();
+        }
+    }
+
+    private void ScheduleNextFetch(TimeSpan delay)
+    {
+        _nextFetch = DateTime.Now + delay;
+        _fetchTimer.Interval = (int)Math.Clamp(delay.TotalMilliseconds, 1000, int.MaxValue);
+        _fetchTimer.Start();
+    }
+
+    private void SetRefreshInterval(int seconds)
+    {
+        _settings.RefreshSeconds = seconds;
+        _settings.Save();
+        UpdateIntervalChecks();
+        if (_busy) return;
+
+        // Re-plan the next check relative to the last successful one, but never sooner than in a few seconds.
+        var last = _snapshot?.FetchedAt.LocalDateTime ?? DateTime.Now;
+        var wait = last + _settings.ResolveRefreshInterval() - DateTime.Now;
+        ScheduleNextFetch(wait > TimeSpan.FromSeconds(3) ? wait : TimeSpan.FromSeconds(3));
+        UpdateStatus();
+    }
+
+    private void UpdateIntervalChecks()
+    {
+        foreach (var (seconds, item) in _intervalItems)
+        {
+            item.Checked = seconds == _settings.RefreshSeconds;
         }
     }
 
@@ -524,6 +591,8 @@ public sealed class MainForm : Form
             : null;
         _header.Text = plan is null ? "Claude" : $"Claude {plan}";
 
+        _sessionRow.Visible = snapshot.Session is not null;
+        _weeklySection.Visible = true;
         _sessionRow.Set(snapshot.Session);
 
         var weekly = new List<LimitInfo>();
@@ -572,8 +641,15 @@ public sealed class MainForm : Form
         }
         var wait = _nextFetch - DateTime.Now;
         parts.Add(wait > TimeSpan.Zero
-            ? L.F("status.next", (int)Math.Ceiling(wait.TotalSeconds))
+            ? L.F(_rateLimited ? "status.rateLimited" : "status.next", FormatWait(wait))
             : L.Get("status.refreshing"));
         _status.Text = string.Join(" · ", parts);
+        _status.ForeColor = _rateLimited ? Color.FromArgb(240, 140, 0) : Theme.Current.SecondaryText;
+    }
+
+    private static string FormatWait(TimeSpan wait)
+    {
+        var total = (int)Math.Ceiling(wait.TotalSeconds);
+        return total >= 60 ? L.F("time.ms", total / 60, total % 60) : L.F("time.s", total);
     }
 }

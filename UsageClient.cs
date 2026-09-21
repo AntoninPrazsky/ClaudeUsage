@@ -36,13 +36,18 @@ public sealed class UsageClient
             creds = await RefreshAsync(creds, ct);
         }
 
-        var (status, body) = await GetUsageRawAsync(creds.AccessToken, ct);
+        var (status, body, retryAfter) = await GetUsageRawAsync(creds.AccessToken, ct);
 
         if (status == HttpStatusCode.Unauthorized)
         {
             // The token may have been invalidated meanwhile. Re-read the file (Claude Code may have refreshed it) and retry once.
             creds = await RefreshAsync(CredentialStore.Load(), ct);
-            (status, body) = await GetUsageRawAsync(creds.AccessToken, ct);
+            (status, body, retryAfter) = await GetUsageRawAsync(creds.AccessToken, ct);
+        }
+
+        if (status == HttpStatusCode.TooManyRequests)
+        {
+            throw new RateLimitedException(L.Get("err.rateLimited"), retryAfter);
         }
 
         if (status != HttpStatusCode.OK)
@@ -60,7 +65,7 @@ public sealed class UsageClient
         }
     }
 
-    private static async Task<(HttpStatusCode Status, string Body)> GetUsageRawAsync(string accessToken, CancellationToken ct)
+    private static async Task<(HttpStatusCode Status, string Body, TimeSpan? RetryAfter)> GetUsageRawAsync(string accessToken, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, UsageUrl);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -70,7 +75,7 @@ public sealed class UsageClient
         {
             using var response = await Http.SendAsync(request, ct);
             var body = await response.Content.ReadAsStringAsync(ct);
-            return (response.StatusCode, body);
+            return (response.StatusCode, body, ParseRetryAfter(response.Headers.RetryAfter));
         }
         catch (HttpRequestException ex)
         {
@@ -135,6 +140,18 @@ public sealed class UsageClient
 
         CredentialStore.Save(access, refresh, expiresAt);
         return creds with { AccessToken = access, RefreshToken = refresh, ExpiresAtUnixMs = expiresAt };
+    }
+
+    /// <summary>Returns the Retry-After delay, or null when the header is missing or zero (the usage endpoint sends "0").</summary>
+    private static TimeSpan? ParseRetryAfter(RetryConditionHeaderValue? header)
+    {
+        if (header?.Delta is { } delta) return delta > TimeSpan.Zero ? delta : null;
+        if (header?.Date is { } date)
+        {
+            var delay = date - DateTimeOffset.UtcNow;
+            return delay > TimeSpan.Zero ? delay : null;
+        }
+        return null;
     }
 
     private static string Truncate(string s, int max)

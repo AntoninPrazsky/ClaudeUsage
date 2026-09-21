@@ -45,6 +45,7 @@ public static class L
         ["time.hm"] = ("{0} h {1} min", "{0} h {1} min"),
         ["time.m"] = ("{0} min", "{0} min"),
         ["time.s"] = ("{0} s", "{0} s"),
+        ["time.ms"] = ("{0} min {1} s", "{0} min {1} s"),
         ["time.today"] = ("dnes {0}", "today {0}"),
         ["time.tomorrow"] = ("zítra {0}", "tomorrow {0}"),
         ["time.clock"] = ("H:mm", "HH:mm"),
@@ -52,7 +53,8 @@ public static class L
 
         ["status.loading"] = ("Načítám…", "Loading…"),
         ["status.updated"] = ("Aktualizováno {0}", "Updated {0}"),
-        ["status.next"] = ("další za {0} s", "next in {0} s"),
+        ["status.next"] = ("další za {0}", "next in {0}"),
+        ["status.rateLimited"] = ("server omezil počet dotazů, další pokus za {0}", "rate limited by the server, next attempt in {0}"),
         ["status.refreshing"] = ("obnovuji…", "refreshing…"),
         ["button.refresh"] = ("Obnovit teď", "Refresh now"),
 
@@ -65,6 +67,7 @@ public static class L
         ["theme.light"] = ("Světlý", "Light"),
         ["theme.dark"] = ("Tmavý", "Dark"),
         ["menu.scale"] = ("Velikost textu", "Text size"),
+        ["menu.refreshInterval"] = ("Interval kontroly", "Refresh interval"),
         ["menu.topMost"] = ("Vždy navrchu", "Always on top"),
         ["menu.minimizeToTray"] = ("Minimalizovat do lišty", "Minimize to tray"),
         ["menu.exit"] = ("Ukončit", "Exit"),
@@ -88,6 +91,7 @@ public static class L
             "V souboru s přihlášením chybí tokeny. Přihlaste se v Claude Code (/login).",
             "The credentials file contains no tokens. Sign in with Claude Code (/login)."),
         ["err.http"] = ("Server vrátil HTTP {0}: {1}", "Server returned HTTP {0}: {1}"),
+        ["err.rateLimited"] = ("Server omezil počet dotazů (HTTP 429).", "Rate limited by the server (HTTP 429)."),
         ["err.parse"] = ("Odpověď serveru se nepodařilo zpracovat: {0}", "Could not parse the server response: {0}"),
         ["err.noLimits"] = ("odpověď neobsahuje žádné limity.", "the response contains no limits."),
         ["err.connect"] = ("Nepodařilo se připojit k api.anthropic.com: {0}", "Could not connect to api.anthropic.com: {0}"),

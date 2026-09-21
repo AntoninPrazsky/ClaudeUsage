@@ -43,8 +43,19 @@ public sealed record OAuthCredentials(
     public bool IsExpired(TimeSpan margin) => ExpiresAt - margin <= DateTimeOffset.UtcNow;
 }
 
-public sealed class UsageException : Exception
+public class UsageException : Exception
 {
     public UsageException(string message) : base(message) { }
     public UsageException(string message, Exception inner) : base(message, inner) { }
+}
+
+/// <summary>The usage endpoint answered HTTP 429. <see cref="RetryAfter"/> is the Retry-After header, when the server sent a usable one.</summary>
+public sealed class RateLimitedException : UsageException
+{
+    public TimeSpan? RetryAfter { get; }
+
+    public RateLimitedException(string message, TimeSpan? retryAfter) : base(message)
+    {
+        RetryAfter = retryAfter;
+    }
 }

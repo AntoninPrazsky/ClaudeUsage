@@ -15,7 +15,7 @@ This is an unofficial tool for developers and other technical users. It is not a
 
 - **Current session**: percent used, percent left, reset time (relative and absolute).
 - **Weekly limits**: *All models* plus one row per model-scoped limit. Rows are built from the API response, so new per-model limits show up without an update.
-- Auto-refresh every 60 seconds, plus a manual refresh button.
+- Auto-refresh every 5 minutes by default (Settings → Refresh interval: 3–30 minutes), plus a manual refresh button. On HTTP 429 the app keeps the last values and backs off automatically.
 - **System tray icon** with a tooltip listing all percentages. Minimizing hides the window to the tray; left-click the icon to bring it back, right-click for a menu.
 - **English and Czech UI** (Settings → Language). The default follows the Windows display language.
 - **Light and dark theme** (Settings → Theme). The default follows the Windows app mode and switches live when Windows does.
@@ -52,6 +52,12 @@ The executable is not code-signed, so Windows SmartScreen may warn on first run 
 
 This endpoint is undocumented and used internally by Claude Code; Anthropic may change it at any time.
 
+### Rate limit
+
+The endpoint is rate limited per access token, and the limit is neither documented nor announced in headers: a throttled request gets HTTP 429 with `Retry-After: 0` and no `x-ratelimit-*` headers (see [anthropics/claude-code#30930](https://github.com/anthropics/claude-code/issues/30930)). Polling every minute is enough to hit it. Measured with this app on 2026-09-21: once throttled, the endpoint let through exactly one request every 150 seconds (24 per hour per token), which looks like a token bucket refilling at that rate. Anything faster than that eventually stalls; a manual refresh and every app start use one request too.
+
+The app therefore checks every 5 minutes by default (Settings → Refresh interval, 3–30 minutes). When a check returns 429 it keeps showing the last values, marks the status line, and doubles the wait for every consecutive 429 (up to 30 minutes). Do not expect real-time numbers: the data only changes with your own Claude usage anyway.
+
 ### Token refresh
 
 Access tokens expire after roughly 8 hours. When the token is expired, or the API returns 401, the app refreshes it with the stored refresh token at `https://platform.claude.com/v1/oauth/token`, using the same OAuth client ID as Claude Code, and writes the new tokens back to `.credentials.json` in the same format. Claude Code keeps working with the same login.
@@ -72,11 +78,12 @@ Preferences live in `%APPDATA%\ClaudeUsage\settings.json`:
   "Language": "auto",
   "TopMost": false,
   "Theme": "auto",
-  "Scale": 100
+  "Scale": 100,
+  "RefreshSeconds": 300
 }
 ```
 
-`Language` is `auto` (follow Windows), `cs` or `en`. `Theme` is `auto` (follow the Windows app mode), `light` or `dark`. `Scale` is the text size in percent; the menu offers 100–150, the file accepts 50–300.
+`Language` is `auto` (follow Windows), `cs` or `en`. `Theme` is `auto` (follow the Windows app mode), `light` or `dark`. `Scale` is the text size in percent; the menu offers 100–150, the file accepts 50–300. `RefreshSeconds` is the time between two usage checks; the menu offers 180–1800, the file accepts 30–86400 (values under 150 will hit the rate limit, see above).
 
 ## Build from source
 

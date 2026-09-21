@@ -24,6 +24,11 @@ public sealed class AppSettings
 
     public float ResolveScale() => Math.Clamp(Scale, 50, 300) / 100f;
 
+    /// <summary>Seconds between two usage checks. The menu offers 60–1800; the file accepts 30–86400.</summary>
+    public int RefreshSeconds { get; set; } = 300;
+
+    public TimeSpan ResolveRefreshInterval() => TimeSpan.FromSeconds(Math.Clamp(RefreshSeconds, 30, 86400));
+
     public ThemeMode ResolveThemeMode() => Theme switch
     {
         "light" => ThemeMode.Light,
