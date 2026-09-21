@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ClaudeUsage</AssemblyName>
+    <RootNamespace>ClaudeUsage</RootNamespace>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationVisualStyles>true</ApplicationVisualStyles>
+    <ApplicationUseCompatibleTextRendering>false</ApplicationUseCompatibleTextRendering>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Version>1.0.0</Version>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Product>Claude Usage</Product>
+    <Description>Shows the remaining usage limits of the Claude account signed in to Claude Code.</Description>
+    <Authors>Antonín Pražský</Authors>
+    <Copyright>Copyright (c) 2026 Antonín Pražský</Copyright>
+    <RepositoryUrl>https://github.com/AntoninPrazsky/ClaudeUsage</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>
