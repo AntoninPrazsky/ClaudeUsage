@@ -2,7 +2,10 @@
 
 A small Windows tray app that shows the remaining usage limits of the Claude account you are signed in to with [Claude Code](https://code.claude.com): the current session window and the weekly limits (all models plus per-model limits such as Fable), each with the time of the next reset.
 
-![ClaudeUsage window](docs/screenshot.png)
+<p>
+  <img src="docs/screenshot.png" alt="ClaudeUsage window, light theme" width="49%">
+  <img src="docs/screenshot-dark.png" alt="ClaudeUsage window, dark theme" width="49%">
+</p>
 
 It reads the same data Claude Code shows in `/usage`, so the numbers match the terminal, but you can keep them on screen (or in the tray tooltip) while you work.
 
@@ -15,6 +18,8 @@ This is an unofficial tool for developers and other technical users. It is not a
 - Auto-refresh every 60 seconds, plus a manual refresh button.
 - **System tray icon** with a tooltip listing all percentages. Minimizing hides the window to the tray; left-click the icon to bring it back, right-click for a menu.
 - **English and Czech UI** (Settings → Language). The default follows the Windows display language.
+- **Light and dark theme** (Settings → Theme). The default follows the Windows app mode and switches live when Windows does.
+- **Text size** from 100 % to 150 % (Settings → Text size), on top of the monitor's DPI scaling.
 - Always-on-top toggle.
 - Zero configuration: it reuses the Claude Code login.
 
@@ -65,11 +70,13 @@ Preferences live in `%APPDATA%\ClaudeUsage\settings.json`:
 ```json
 {
   "Language": "auto",
-  "TopMost": false
+  "TopMost": false,
+  "Theme": "auto",
+  "Scale": 100
 }
 ```
 
-`Language` is `auto` (follow Windows), `cs` or `en`.
+`Language` is `auto` (follow Windows), `cs` or `en`. `Theme` is `auto` (follow the Windows app mode), `light` or `dark`. `Scale` is the text size in percent; the menu offers 100–150, the file accepts 50–300.
 
 ## Build from source
 
@@ -93,6 +100,7 @@ Releases are built by GitHub Actions from the tagged commit (`.github/workflows/
 | `MainForm.cs` | Window, menu, tray icon, timers, rendering |
 | `LimitRow.cs` | One limit row (name, percentage, bar, reset time) |
 | `Localization.cs` | UI strings in English and Czech |
+| `Theme.cs` | Light/dark palettes, themed menu renderer, dark title bar |
 | `AppSettings.cs` | Preferences in `%APPDATA%\ClaudeUsage\settings.json` |
 | `UsageClient.cs` | API calls and token refresh |
 | `UsageParser.cs` | JSON response to limit objects |

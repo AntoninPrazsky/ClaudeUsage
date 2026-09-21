@@ -12,10 +12,8 @@ public sealed class LimitRow : TableLayoutPanel
     private readonly Label _reset = new();
     private LimitInfo? _info;
 
-    public LimitRow(int width)
+    public LimitRow()
     {
-        Width = width;
-        MinimumSize = new Size(width, 0);
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         ColumnCount = 2;
@@ -28,22 +26,15 @@ public sealed class LimitRow : TableLayoutPanel
         RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
         _title.AutoSize = true;
-        _title.Font = new Font("Segoe UI Semibold", 10.5f);
-        _title.Margin = new Padding(0, 0, 0, 4);
         _title.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
 
         _percent.AutoSize = true;
-        _percent.Font = new Font("Segoe UI Semibold", 10.5f);
-        _percent.Margin = new Padding(0, 0, 0, 4);
         _percent.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
         _percent.TextAlign = ContentAlignment.MiddleRight;
 
-        _bar.Height = 12;
-        _bar.Margin = new Padding(0, 0, 0, 5);
         _bar.Dock = DockStyle.Fill;
 
         _reset.AutoSize = true;
-        _reset.ForeColor = Color.FromArgb(96, 96, 96);
         _reset.Margin = Padding.Empty;
 
         Controls.Add(_title, 0, 0);
@@ -53,7 +44,27 @@ public sealed class LimitRow : TableLayoutPanel
         Controls.Add(_reset, 0, 2);
         SetColumnSpan(_reset, 2);
 
+        ApplyTheme();
+        ApplyScale(420, 1f, 96);
         Set(null);
+    }
+
+    /// <summary>Sets the row width and scales fonts, bar height and spacing by the user text size and the monitor DPI.</summary>
+    public void ApplyScale(int width, float scale, int dpi)
+    {
+        int Px(int v) => (int)Math.Round(v * scale * dpi / 96f);
+
+        SuspendLayout();
+        Width = width;
+        MinimumSize = new Size(width, 0);
+        Margin = new Padding(0, 0, 0, Px(14));
+        _title.Font = new Font("Segoe UI Semibold", 10.5f * scale);
+        _title.Margin = new Padding(0, 0, 0, Px(4));
+        _percent.Font = _title.Font;
+        _percent.Margin = _title.Margin;
+        _bar.Height = Px(12);
+        _bar.Margin = new Padding(0, 0, 0, Px(5));
+        ResumeLayout(true);
     }
 
     public void Set(LimitInfo? info)
@@ -72,8 +83,19 @@ public sealed class LimitRow : TableLayoutPanel
         _percent.Text = L.F("limit.used", Math.Round(info.Percent));
         _bar.Percent = info.Percent;
         _bar.FillColor = ColorFor(info.Percent, info.Severity);
-        _percent.ForeColor = info.Percent >= 90 ? _bar.FillColor : Color.FromArgb(32, 32, 32);
+        _percent.ForeColor = info.Percent >= 90 ? _bar.FillColor : Theme.Current.Text;
         Tick();
+    }
+
+    /// <summary>Re-applies the colors of <see cref="Theme.Current"/>.</summary>
+    public void ApplyTheme()
+    {
+        var t = Theme.Current;
+        BackColor = t.Background;
+        _title.ForeColor = t.Text;
+        _reset.ForeColor = t.SecondaryText;
+        _percent.ForeColor = _info is { Percent: >= 90 } ? _bar.FillColor : t.Text;
+        _bar.Invalidate();
     }
 
     /// <summary>Recomputes the relative time until reset (called every second).</summary>
@@ -138,12 +160,12 @@ public sealed class LimitRow : TableLayoutPanel
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.Clear(Parent?.BackColor ?? Color.White);
+            g.Clear(Theme.Current.Background);
 
             var rect = new Rectangle(0, 0, Width - 1, Height - 1);
             var radius = rect.Height;
             using var track = Rounded(rect, radius);
-            using var trackBrush = new SolidBrush(Color.FromArgb(232, 230, 226));
+            using var trackBrush = new SolidBrush(Theme.Current.Track);
             g.FillPath(trackBrush, track);
 
             var fillWidth = (int)Math.Round(rect.Width * _percent / 100.0);

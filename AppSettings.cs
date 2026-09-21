@@ -16,6 +16,21 @@ public sealed class AppSettings
 
     public bool TopMost { get; set; }
 
+    /// <summary>"light", "dark" or "auto" (follow the Windows app mode).</summary>
+    public string Theme { get; set; } = "auto";
+
+    /// <summary>Text size in percent (100 = default). The menu offers 100–150; any value 50–300 is accepted.</summary>
+    public int Scale { get; set; } = 100;
+
+    public float ResolveScale() => Math.Clamp(Scale, 50, 300) / 100f;
+
+    public ThemeMode ResolveThemeMode() => Theme switch
+    {
+        "light" => ThemeMode.Light,
+        "dark" => ThemeMode.Dark,
+        _ => ThemeMode.Auto,
+    };
+
     public static AppSettings Load()
     {
         try
