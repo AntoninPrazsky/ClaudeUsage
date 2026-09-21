@@ -11,7 +11,11 @@ namespace ClaudeUsage;
 /// </summary>
 public sealed class UsageClient
 {
-    private const string UsageUrl = "https://api.anthropic.com/api/oauth/usage";
+    // CLAUDEUSAGE_USAGE_URL lets developers point the app at a local mock server (the real endpoint is rate limited).
+    private static readonly string UsageUrl =
+        Environment.GetEnvironmentVariable("CLAUDEUSAGE_USAGE_URL") is { Length: > 0 } url
+            ? url
+            : "https://api.anthropic.com/api/oauth/usage";
     private const string TokenUrl = "https://platform.claude.com/v1/oauth/token";
     private const string ClientId = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
     private const string OAuthBeta = "oauth-2025-04-20";

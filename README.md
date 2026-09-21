@@ -54,7 +54,7 @@ This endpoint is undocumented and used internally by Claude Code; Anthropic may 
 
 ### Rate limit
 
-The endpoint is rate limited per access token, and the limit is neither documented nor announced in headers: a throttled request gets HTTP 429 with `Retry-After: 0` and no `x-ratelimit-*` headers (see [anthropics/claude-code#30930](https://github.com/anthropics/claude-code/issues/30930)). Polling every minute is enough to hit it. Measured with this app on 2026-09-21: once throttled, the endpoint let through exactly one request every 150 seconds (24 per hour per token), which looks like a token bucket refilling at that rate. Anything faster than that eventually stalls; a manual refresh and every app start use one request too.
+The endpoint is rate limited per access token, and the limit is neither documented nor announced in headers: a throttled request gets HTTP 429 with `Retry-After: 0` and no `x-ratelimit-*` headers (see [anthropics/claude-code#30930](https://github.com/anthropics/claude-code/issues/30930)). Polling every minute is enough to hit it. Measured with this app on 2026-09-21: once throttled, the endpoint let through exactly one request every 150 seconds (24 per hour per token), which looks like a token bucket refilling at that rate. Anything faster than that eventually stalls; a manual refresh and every app start use one request too. The budget belongs to the login token, so anything else that calls the endpoint with the same login (a second instance of this app, a statusline script) draws from the same 24 requests per hour.
 
 The app therefore checks every 5 minutes by default (Settings → Refresh interval, 3–30 minutes). When a check returns 429 it keeps showing the last values, marks the status line, and doubles the wait for every consecutive 429 (up to 30 minutes). Do not expect real-time numbers: the data only changes with your own Claude usage anyway.
 
@@ -96,6 +96,8 @@ dotnet publish -c Release -r win-x64 -p:SelfContained=false -p:PublishSingleFile
 ```
 
 The result is `publish\ClaudeUsage.exe` (about 230 kB). For a self-contained build that does not need the runtime installed (about 100 MB), pass `-p:SelfContained=true` instead.
+
+For development, the environment variable `CLAUDEUSAGE_USAGE_URL` points the app at another URL (for example a local mock server that returns a saved response), which avoids burning the real endpoint's rate limit while working on the UI.
 
 Releases are built by GitHub Actions from the tagged commit (`.github/workflows/build.yml`). Pushing a `v*` tag publishes a release with the binary and its checksum.
 
