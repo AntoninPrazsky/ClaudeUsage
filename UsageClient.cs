@@ -26,7 +26,8 @@ public sealed class UsageClient
     {
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
         var version = typeof(UsageClient).Assembly.GetName().Version ?? new Version(0, 0);
-        client.DefaultRequestHeaders.UserAgent.ParseAdd($"ClaudeUsage/{version.Major}.{version.Minor} (Windows)");
+        var os = OperatingSystem.IsWindows() ? "Windows" : "Linux";
+        client.DefaultRequestHeaders.UserAgent.ParseAdd($"ClaudeUsage/{version.Major}.{version.Minor} ({os})");
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return client;
     }

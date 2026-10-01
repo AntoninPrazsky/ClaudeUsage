@@ -58,3 +58,50 @@ jobs:
             publish/ClaudeUsage.exe
             publish/ClaudeUsage.exe.sha256
           generate_release_notes: true
+
+  # The Linux front end (linux/, Avalonia), built for the Raspberry Pi. It runs after the Windows job so that
+  # on a tag it adds its archive to the release that job created.
+  linux:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      AVALONIA_TELEMETRY_OPTOUT: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Determine version
+        run: |
+          v=0.0.0-dev
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF_NAME#v}"; fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+          echo "Version: $v"
+
+      # The archive unpacks to ClaudeUsage/ with the app, its icon and install.sh, which installs it for the user
+      - name: Publish
+        run: |
+          dotnet publish linux/ClaudeUsage.Linux.csproj -c Release -r linux-arm64 --self-contained false \
+            -p:Version=$VERSION -o publish/ClaudeUsage
+          cp linux/install.sh linux/claudeusage.png publish/ClaudeUsage/
+          chmod +x publish/ClaudeUsage/ClaudeUsage publish/ClaudeUsage/install.sh
+          tar -czf ClaudeUsage-linux-arm64.tar.gz -C publish ClaudeUsage
+          sha256sum ClaudeUsage-linux-arm64.tar.gz > ClaudeUsage-linux-arm64.tar.gz.sha256
+          cat ClaudeUsage-linux-arm64.tar.gz.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClaudeUsage-linux-arm64
+          path: |
+            ClaudeUsage-linux-arm64.tar.gz
+            ClaudeUsage-linux-arm64.tar.gz.sha256
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ClaudeUsage-linux-arm64.tar.gz
+            ClaudeUsage-linux-arm64.tar.gz.sha256
