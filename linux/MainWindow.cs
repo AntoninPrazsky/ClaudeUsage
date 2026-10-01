@@ -519,10 +519,15 @@ public sealed class MainWindow : Window
         }
         catch (UsageException ex)
         {
+            // Any answer other than a 429 ends a run of 429s: the next check comes at the normal interval.
+            _rateLimited = false;
+            _rateLimitStrikes = 0;
             ShowError(ex.Message);
         }
         catch (Exception ex)
         {
+            _rateLimited = false;
+            _rateLimitStrikes = 0;
             ShowError(L.F("err.unexpected", ex.Message));
         }
         finally
