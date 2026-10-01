@@ -4,8 +4,8 @@ using System.Text.Json.Nodes;
 namespace ClaudeUsage;
 
 /// <summary>
-/// Reads and writes %USERPROFILE%\.claude\.credentials.json, the file where Claude Code
-/// on Windows stores the OAuth tokens of the claude.ai account.
+/// Reads and writes %USERPROFILE%\.claude\.credentials.json (~/.claude/.credentials.json on Linux),
+/// the file where Claude Code stores the OAuth tokens of the claude.ai account.
 /// </summary>
 public static class CredentialStore
 {
@@ -67,7 +67,13 @@ public static class CredentialStore
         oauth["expiresAt"] = expiresAtUnixMs;
 
         var tmp = FilePath + ".tmp-" + Environment.ProcessId;
-        File.WriteAllText(tmp, root.ToJsonString(new JsonSerializerOptions { WriteIndented = false }));
+        // On Linux the file holds the tokens behind mode 0600; a plain create would leave the copy readable by other users.
+        var options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
+        if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        using (var writer = new StreamWriter(tmp, options))
+        {
+            writer.Write(root.ToJsonString(new JsonSerializerOptions { WriteIndented = false }));
+        }
         File.Move(tmp, FilePath, overwrite: true);
     }
 }

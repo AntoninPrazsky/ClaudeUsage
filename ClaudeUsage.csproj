@@ -21,4 +21,11 @@
     <RepositoryUrl>https://github.com/AntoninPrazsky/ClaudeUsage</RepositoryUrl>
   </PropertyGroup>
 
+  <!-- linux/ is the Avalonia front end for Linux; it links the shared core files from here. -->
+  <ItemGroup>
+    <Compile Remove="linux\**" />
+    <EmbeddedResource Remove="linux\**" />
+    <None Remove="linux\**" />
+  </ItemGroup>
+
 </Project>

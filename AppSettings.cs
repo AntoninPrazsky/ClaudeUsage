@@ -3,20 +3,21 @@ using System.Text.Json;
 
 namespace ClaudeUsage;
 
-/// <summary>User preferences stored in %APPDATA%\ClaudeUsage\settings.json.</summary>
+/// <summary>User preferences stored in %APPDATA%\ClaudeUsage\settings.json (~/.config/ClaudeUsage/settings.json on Linux).</summary>
 public sealed class AppSettings
 {
     private static readonly string Dir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ClaudeUsage");
+        // Create: on Linux a missing ~/.config would otherwise come back as "" and the settings would land in the working directory.
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "ClaudeUsage");
 
     public static string FilePath { get; } = Path.Combine(Dir, "settings.json");
 
-    /// <summary>"cs", "en" or "auto" (follow the Windows display language).</summary>
+    /// <summary>"cs", "en" or "auto" (follow the system display language).</summary>
     public string Language { get; set; } = "auto";
 
     public bool TopMost { get; set; }
 
-    /// <summary>"light", "dark" or "auto" (follow the Windows app mode).</summary>
+    /// <summary>"light", "dark" or "auto" (follow the system light/dark mode).</summary>
     public string Theme { get; set; } = "auto";
 
     /// <summary>Text size in percent (100 = default). The menu offers 100–150; any value 50–300 is accepted.</summary>
