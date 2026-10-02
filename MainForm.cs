@@ -34,6 +34,8 @@ public sealed class MainForm : Form
     private readonly ToolStripMenuItem _topMostItem = new() { CheckOnClick = true };
     private readonly ToolStripMenuItem _minimizeItem = new();
     private readonly ToolStripMenuItem _exitItem = new();
+    private readonly ToolStripMenuItem _helpMenu = new();
+    private readonly ToolStripMenuItem _aboutItem = new();
 
     // System tray icon
     private readonly NotifyIcon _tray = new();
@@ -47,7 +49,9 @@ public sealed class MainForm : Form
     private readonly ToolStripMenuItem _trayThemeAuto = new();
     private readonly ToolStripMenuItem _trayThemeLight = new();
     private readonly ToolStripMenuItem _trayThemeDark = new();
+    private readonly ToolStripMenuItem _trayAbout = new();
     private readonly ToolStripMenuItem _trayExit = new();
+    private AboutForm? _about;
     private bool _balloonShown;
 
     // Window content
@@ -176,6 +180,10 @@ public sealed class MainForm : Form
         _settingsMenu.DropDownItems.AddRange(
             _languageMenu, _themeMenu, _scaleMenu, _intervalMenu, _topMostItem, new ToolStripSeparator(), _minimizeItem, _exitItem);
         _menu.Items.Add(_settingsMenu);
+
+        _aboutItem.Click += (_, _) => ShowAbout();
+        _helpMenu.DropDownItems.Add(_aboutItem);
+        _menu.Items.Add(_helpMenu);
         MainMenuStrip = _menu;
         Controls.Add(_menu);
     }
@@ -192,9 +200,10 @@ public sealed class MainForm : Form
         _trayThemeLight.Click += (_, _) => SetTheme(ThemeMode.Light);
         _trayThemeDark.Click += (_, _) => SetTheme(ThemeMode.Dark);
         _trayTheme.DropDownItems.AddRange(_trayThemeAuto, _trayThemeLight, _trayThemeDark);
+        _trayAbout.Click += (_, _) => ShowAbout();
         _trayExit.Click += (_, _) => Close();
         _trayMenu.Items.AddRange(
-            _trayShow, _trayRefresh, new ToolStripSeparator(), _trayLanguage, _trayTheme, new ToolStripSeparator(), _trayExit);
+            _trayShow, _trayRefresh, new ToolStripSeparator(), _trayLanguage, _trayTheme, new ToolStripSeparator(), _trayAbout, _trayExit);
 
         _tray.Icon = _appIcon ?? SystemIcons.Application;
         _tray.ContextMenuStrip = _trayMenu;
@@ -309,6 +318,9 @@ public sealed class MainForm : Form
         _topMostItem.Text = L.Get("menu.topMost");
         _minimizeItem.Text = L.Get("menu.minimizeToTray");
         _exitItem.Text = L.Get("menu.exit");
+        _helpMenu.Text = L.Get("menu.help");
+        _aboutItem.Text = L.Get("menu.about");
+        _trayAbout.Text = L.Get("menu.about");
 
         _trayShow.Text = L.Get("tray.show");
         _trayRefresh.Text = L.Get("tray.refresh");
@@ -410,6 +422,32 @@ public sealed class MainForm : Form
 
     /// <summary>Converts a design-time pixel value (96 DPI, 100 %) to the current text size and monitor DPI.</summary>
     private int Px(int value) => (int)Math.Round(value * _scale * DeviceDpi / 96f);
+
+    /// <summary>The About window, over the main window, or in the middle of the screen when the app sits in the tray.</summary>
+    private void ShowAbout()
+    {
+        if (_about is not null)
+        {
+            _about.Activate();
+            return;
+        }
+
+        using var about = new AboutForm(_appIcon, _scale);
+        _about = about;
+        try
+        {
+            if (Visible) about.ShowDialog(this);
+            else
+            {
+                about.StartPosition = FormStartPosition.CenterScreen;
+                about.ShowDialog();
+            }
+        }
+        finally
+        {
+            _about = null;
+        }
+    }
 
     private int ContentPx => Px(ContentWidth);
 
