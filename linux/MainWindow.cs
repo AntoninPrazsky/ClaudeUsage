@@ -40,6 +40,8 @@ public sealed class MainWindow : Window
     private readonly MenuItem _topMostItem = new() { ToggleType = MenuItemToggleType.CheckBox };
     private readonly MenuItem _minimizeItem = new();
     private readonly MenuItem _exitItem = new();
+    private readonly MenuItem _helpMenu = new();
+    private readonly MenuItem _aboutItem = new();
 
     // System tray icon (StatusNotifierItem; the Raspberry Pi OS panel shows it in its tray)
     private readonly TrayIcon _tray = new();
@@ -53,7 +55,9 @@ public sealed class MainWindow : Window
     private readonly NativeMenuItem _trayThemeAuto = new() { ToggleType = MenuItemToggleType.Radio };
     private readonly NativeMenuItem _trayThemeLight = new() { ToggleType = MenuItemToggleType.Radio };
     private readonly NativeMenuItem _trayThemeDark = new() { ToggleType = MenuItemToggleType.Radio };
+    private readonly NativeMenuItem _trayAbout = new();
     private readonly NativeMenuItem _trayExit = new();
+    private AboutWindow? _about;
     private bool _balloonShown;
     private DateTime _restoredAt;
 
@@ -118,6 +122,25 @@ public sealed class MainWindow : Window
             _tray.IsVisible = false;
             _tray.Dispose();
         };
+    }
+
+    /// <summary>The About window, over the main window, or in the middle of the screen when the app sits in the tray.</summary>
+    private void ShowAbout()
+    {
+        if (_about is not null)
+        {
+            _about.Activate();
+            return;
+        }
+
+        _about = new AboutWindow(_appIcon, _settings.ResolveScale());
+        _about.Closed += (_, _) => _about = null;
+        if (IsVisible && WindowState != WindowState.Minimized) _ = _about.ShowDialog(this);
+        else
+        {
+            _about.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            _about.Show();
+        }
     }
 
     private static WindowIcon? LoadAppIcon()
@@ -193,6 +216,10 @@ public sealed class MainWindow : Window
         _settingsMenu.Items.Add(_minimizeItem);
         _settingsMenu.Items.Add(_exitItem);
         _menu.Items.Add(_settingsMenu);
+
+        _aboutItem.Click += (_, _) => ShowAbout();
+        _helpMenu.Items.Add(_aboutItem);
+        _menu.Items.Add(_helpMenu);
     }
 
     private void BuildTray()
@@ -209,6 +236,7 @@ public sealed class MainWindow : Window
         _trayTheme.Menu!.Items.Add(_trayThemeAuto);
         _trayTheme.Menu.Items.Add(_trayThemeLight);
         _trayTheme.Menu.Items.Add(_trayThemeDark);
+        _trayAbout.Click += (_, _) => ShowAbout();
         _trayExit.Click += (_, _) => Close();
         _trayMenu.Items.Add(_trayShow);
         _trayMenu.Items.Add(_trayRefresh);
@@ -216,6 +244,7 @@ public sealed class MainWindow : Window
         _trayMenu.Items.Add(_trayLanguage);
         _trayMenu.Items.Add(_trayTheme);
         _trayMenu.Items.Add(new NativeMenuItemSeparator());
+        _trayMenu.Items.Add(_trayAbout);
         _trayMenu.Items.Add(_trayExit);
 
         _tray.Icon = _appIcon;
@@ -337,6 +366,8 @@ public sealed class MainWindow : Window
         _topMostItem.Header = L.Get("menu.topMost");
         _minimizeItem.Header = L.Get("menu.minimizeToTray");
         _exitItem.Header = L.Get("menu.exit");
+        _helpMenu.Header = L.Get("menu.help");
+        _aboutItem.Header = L.Get("menu.about");
 
         _trayShow.Header = L.Get("tray.show");
         _trayRefresh.Header = L.Get("tray.refresh");
@@ -347,6 +378,7 @@ public sealed class MainWindow : Window
         _trayThemeAuto.Header = L.Get("theme.auto");
         _trayThemeLight.Header = L.Get("theme.light");
         _trayThemeDark.Header = L.Get("theme.dark");
+        _trayAbout.Header = L.Get("menu.about");
         _trayExit.Header = L.Get("menu.exit");
 
         _weeklySection.Text = L.Get("section.weekly").ToUpper(L.Culture);

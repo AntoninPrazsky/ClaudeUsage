@@ -71,6 +71,20 @@ public static class L
         ["menu.topMost"] = ("Vždy navrchu", "Always on top"),
         ["menu.minimizeToTray"] = ("Minimalizovat do lišty", "Minimize to tray"),
         ["menu.exit"] = ("Ukončit", "Exit"),
+        ["menu.help"] = ("Nápověda", "Help"),
+        ["menu.about"] = ("O aplikaci…", "About…"),
+
+        ["about.title"] = ("O aplikaci Claude Usage", "About Claude Usage"),
+        ["about.version"] = ("Verze {0}", "Version {0}"),
+        ["about.description"] = (
+            "Ukazuje, kolik zbývá z limitů předplatného Claude u účtu přihlášeného v Claude Code: z aktuální relace i z týdenních limitů.",
+            "Shows how much is left of the usage limits of the Claude subscription signed in to Claude Code: the current session and the weekly limits."),
+        ["about.unofficial"] = (
+            "Neoficiální nástroj pro vývojáře a další technické uživatele. Není spojený se společností Anthropic ani jí podporovaný.",
+            "An unofficial tool for developers and other technical users. It is not affiliated with or endorsed by Anthropic."),
+        ["about.source"] = ("Zdrojový kód a nové verze:", "Source code and new versions:"),
+        ["about.license"] = ("Licence MIT", "MIT License"),
+        ["about.close"] = ("Zavřít", "Close"),
 
         ["tray.show"] = ("Zobrazit", "Show"),
         ["tray.refresh"] = ("Obnovit", "Refresh"),

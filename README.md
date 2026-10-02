@@ -21,6 +21,7 @@ This is an unofficial tool for developers and other technical users. It is not a
 - **Light and dark theme** (Settings → Theme). The default follows the system: the Windows app mode, switching live when Windows does; on Linux the desktop's light/dark preference.
 - **Text size** from 100 % to 150 % (Settings → Text size), on top of the monitor's DPI scaling.
 - Always-on-top toggle.
+- **About** (Help → About…, also in the tray menu): the version, what the app is, that it is unofficial, and a link to this repository.
 - Zero configuration: it reuses the Claude Code login.
 
 ## Requirements
@@ -148,8 +149,10 @@ Releases are built by GitHub Actions from the tagged commit (`.github/workflows/
 |---|---|
 | `Program.cs` | Entry point |
 | `MainForm.cs` | Window, menu, tray icon, timers, rendering |
+| `AboutForm.cs` | The About window |
 | `LimitRow.cs` | One limit row (name, percentage, bar, reset time) |
 | `Localization.cs` | UI strings in English and Czech |
+| `AppInfo.cs` | Name, version, copyright and repository link for the About window |
 | `Theme.cs` | Light/dark palettes, themed menu renderer, dark title bar |
 | `AppSettings.cs` | Preferences in `settings.json` |
 | `UsageClient.cs` | API calls and token refresh |
@@ -160,6 +163,7 @@ Releases are built by GitHub Actions from the tagged commit (`.github/workflows/
 | `linux/` | The Linux front end (Avalonia), sharing the core files above: |
 | `linux/MainWindow.cs` | Window, menu, tray icon, timers, rendering |
 | `linux/LimitRow.cs` | One limit row |
+| `linux/AboutWindow.cs` | The About window |
 | `linux/AppTheme.cs` | Light/dark palettes on top of Avalonia's Fluent theme |
 | `linux/Program.cs` | Entry point and the Avalonia application |
 | `linux/install.sh` | Per-user install, update and removal, menu entry and autostart |
