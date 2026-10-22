@@ -130,7 +130,7 @@ public sealed class LimitRow : TableLayoutPanel
     }
 
     /// <summary>Keeps a time span or a date in one piece when the line wraps.</summary>
-    private static string NoBreak(string text) => text.Replace(' ', ' ');
+    private static string NoBreak(string text) => text.Replace(' ', '\u00A0');
 
     public static string Relative(DateTimeOffset at)
     {
