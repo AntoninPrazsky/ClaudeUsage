@@ -39,7 +39,7 @@ On **Linux**:
 
 - A desktop with a system tray that supports StatusNotifierItem. Developed and tested on a Raspberry Pi 5 with Raspberry Pi OS (Debian 13, labwc), whose panel has one; the app runs as an X11 client (XWayland under Wayland).
 - The [.NET 10 runtime](https://learn.microsoft.com/dotnet/core/install/linux) (the SDK if you build from source).
-- `gdbus` (package `libglib2.0-bin`, present on Raspberry Pi OS) for the one-time "still running in the tray" notification; without it the app works, just without that notification.
+- `gdbus` (package `libglib2.0-bin`, present on Raspberry Pi OS) for the desktop notifications: the one-time "still running in the tray" note and the usage credit warnings. Without it the app works, just without those notifications.
 
 API-key logins (`ANTHROPIC_API_KEY`) have no subscription limits, so there is nothing to show for them.
 
