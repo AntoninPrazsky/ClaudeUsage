@@ -38,6 +38,7 @@ public sealed class MainWindow : Window
     private static readonly int[] IntervalOptions = { 180, 300, 600, 900, 1800 };
     private readonly Dictionary<int, MenuItem> _intervalItems = new();
     private readonly MenuItem _topMostItem = new() { ToggleType = MenuItemToggleType.CheckBox };
+    private readonly MenuItem _creditWarnItem = new() { ToggleType = MenuItemToggleType.CheckBox };
     private readonly MenuItem _minimizeItem = new();
     private readonly MenuItem _exitItem = new();
     private readonly MenuItem _helpMenu = new();
@@ -205,6 +206,12 @@ public sealed class MainWindow : Window
             Topmost = _settings.TopMost;
             SyncChecks();
         };
+        _creditWarnItem.Click += (_, _) =>
+        {
+            _settings.CreditWarnings = !_settings.CreditWarnings;
+            _settings.Save();
+            SyncChecks();
+        };
         _minimizeItem.Click += (_, _) => HideToTray();
         _exitItem.Click += (_, _) => Close();
 
@@ -213,6 +220,7 @@ public sealed class MainWindow : Window
         _settingsMenu.Items.Add(_scaleMenu);
         _settingsMenu.Items.Add(_intervalMenu);
         _settingsMenu.Items.Add(_topMostItem);
+        _settingsMenu.Items.Add(_creditWarnItem);
         _settingsMenu.Items.Add(new Separator());
         _settingsMenu.Items.Add(_minimizeItem);
         _settingsMenu.Items.Add(_exitItem);
@@ -335,6 +343,7 @@ public sealed class MainWindow : Window
         foreach (var (percent, item) in _scaleItems) item.IsChecked = percent == _settings.Scale;
         foreach (var (seconds, item) in _intervalItems) item.IsChecked = seconds == _settings.RefreshSeconds;
         _topMostItem.IsChecked = _settings.TopMost;
+        _creditWarnItem.IsChecked = _settings.CreditWarnings;
     }
 
     // ---------------------------------------------------------------- language
@@ -367,6 +376,7 @@ public sealed class MainWindow : Window
         _scaleMenu.Header = L.Get("menu.scale");
         _intervalMenu.Header = L.Get("menu.refreshInterval");
         _topMostItem.Header = L.Get("menu.topMost");
+        _creditWarnItem.Header = L.Get("menu.creditWarnings");
         _minimizeItem.Header = L.Get("menu.minimizeToTray");
         _exitItem.Header = L.Get("menu.exit");
         _helpMenu.Header = L.Get("menu.help");
@@ -538,6 +548,7 @@ public sealed class MainWindow : Window
             _rateLimitStrikes = 0;
             _error.IsVisible = false;
             Render(_snapshot);
+            CheckCreditWarning(_snapshot);
         }
         catch (RateLimitedException ex)
         {
@@ -571,6 +582,25 @@ public sealed class MainWindow : Window
             ScheduleNextFetch(delay);
             UpdateStatus();
             UpdateTray();
+        }
+    }
+
+    /// <summary>
+    /// Tells the user once when the credits rise to a new level. The level is remembered in the settings even while the
+    /// warnings are off, so switching them on later does not announce a level that was reached long ago.
+    /// </summary>
+    private void CheckCreditWarning(UsageSnapshot snapshot)
+    {
+        var last = (CreditWarningLevel)_settings.CreditWarnedLevel;
+        var (announce, seen) = CreditWarning.Next(last, snapshot.Credits);
+        if (seen != last)
+        {
+            _settings.CreditWarnedLevel = (int)seen;
+            _settings.Save();
+        }
+        if (announce != CreditWarningLevel.None && _settings.CreditWarnings && snapshot.Credits is { } credits)
+        {
+            Notify(L.Get("app.title"), CreditWarning.Message(announce, credits));
         }
     }
 

@@ -32,6 +32,7 @@ public sealed class MainForm : Form
     private static readonly int[] IntervalOptions = { 180, 300, 600, 900, 1800 };
     private readonly Dictionary<int, ToolStripMenuItem> _intervalItems = new();
     private readonly ToolStripMenuItem _topMostItem = new() { CheckOnClick = true };
+    private readonly ToolStripMenuItem _creditWarnItem = new() { CheckOnClick = true };
     private readonly ToolStripMenuItem _minimizeItem = new();
     private readonly ToolStripMenuItem _exitItem = new();
     private readonly ToolStripMenuItem _helpMenu = new();
@@ -175,11 +176,17 @@ public sealed class MainForm : Form
             _settings.TopMost = _topMostItem.Checked;
             _settings.Save();
         };
+        _creditWarnItem.Checked = _settings.CreditWarnings;
+        _creditWarnItem.CheckedChanged += (_, _) =>
+        {
+            _settings.CreditWarnings = _creditWarnItem.Checked;
+            _settings.Save();
+        };
         _minimizeItem.Click += (_, _) => HideToTray();
         _exitItem.Click += (_, _) => Close();
 
         _settingsMenu.DropDownItems.AddRange(
-            _languageMenu, _themeMenu, _scaleMenu, _intervalMenu, _topMostItem, new ToolStripSeparator(), _minimizeItem, _exitItem);
+            _languageMenu, _themeMenu, _scaleMenu, _intervalMenu, _topMostItem, _creditWarnItem, new ToolStripSeparator(), _minimizeItem, _exitItem);
         _menu.Items.Add(_settingsMenu);
 
         _aboutItem.Click += (_, _) => ShowAbout();
@@ -319,6 +326,7 @@ public sealed class MainForm : Form
         _scaleMenu.Text = L.Get("menu.scale");
         _intervalMenu.Text = L.Get("menu.refreshInterval");
         _topMostItem.Text = L.Get("menu.topMost");
+        _creditWarnItem.Text = L.Get("menu.creditWarnings");
         _minimizeItem.Text = L.Get("menu.minimizeToTray");
         _exitItem.Text = L.Get("menu.exit");
         _helpMenu.Text = L.Get("menu.help");
@@ -558,6 +566,7 @@ public sealed class MainForm : Form
             _rateLimitStrikes = 0;
             _error.Visible = false;
             Render(_snapshot);
+            CheckCreditWarning(_snapshot);
         }
         catch (RateLimitedException ex)
         {
@@ -591,6 +600,25 @@ public sealed class MainForm : Form
             ScheduleNextFetch(delay);
             UpdateStatus();
             UpdateTray();
+        }
+    }
+
+    /// <summary>
+    /// Tells the user once when the credits rise to a new level. The level is remembered in the settings even while the
+    /// warnings are off, so switching them on later does not announce a level that was reached long ago.
+    /// </summary>
+    private void CheckCreditWarning(UsageSnapshot snapshot)
+    {
+        var last = (CreditWarningLevel)_settings.CreditWarnedLevel;
+        var (announce, seen) = CreditWarning.Next(last, snapshot.Credits);
+        if (seen != last)
+        {
+            _settings.CreditWarnedLevel = (int)seen;
+            _settings.Save();
+        }
+        if (announce != CreditWarningLevel.None && _settings.CreditWarnings && snapshot.Credits is { } credits)
+        {
+            _tray.ShowBalloonTip(10000, L.Get("app.title"), CreditWarning.Message(announce, credits), ToolTipIcon.Warning);
         }
     }
 

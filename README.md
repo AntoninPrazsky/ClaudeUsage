@@ -16,6 +16,7 @@ This is an unofficial tool for developers and other technical users. It is not a
 - **Current session**: percent used, percent left, reset time (relative and absolute).
 - **Weekly limits**: *All models* plus one row per model-scoped limit. Rows are built from the API response, so new per-model limits show up without an update.
 - **Usage credits**: when the account has extra usage switched on, a row below the weekly limits shows what has been spent against the monthly cap, in the account's own currency, and the tray tooltip lists it too. Accounts without credits see no such row. The response carries no prepaid balance, so none is shown.
+- **Credit warnings**: one notification (a tray balloon on Windows, a desktop notification on Linux) when the credits reach 80 % of the monthly cap and one when the cap is reached. Settings → *Warn about usage credits* turns it off.
 - Auto-refresh every 5 minutes by default (Settings → Refresh interval: 3–30 minutes), plus a manual refresh button. On HTTP 429 the app keeps the last values and backs off automatically.
 - **System tray icon** with a tooltip listing all percentages. Minimizing hides the window to the tray; left-click the icon to bring it back, right-click for a menu.
 - **English and Czech UI** (Settings → Language). The default follows the system display language.
@@ -107,11 +108,12 @@ Preferences live in `%APPDATA%\ClaudeUsage\settings.json` (on Linux `~/.config/C
   "TopMost": false,
   "Theme": "auto",
   "Scale": 100,
-  "RefreshSeconds": 300
+  "RefreshSeconds": 300,
+  "CreditWarnings": true
 }
 ```
 
-`Language` is `auto` (follow the system), `cs` or `en`. `Theme` is `auto` (follow the system's light/dark mode), `light` or `dark`. `Scale` is the text size in percent; the menu offers 100–150, the file accepts 50–300. `RefreshSeconds` is the time between two usage checks; the menu offers 180–1800, the file accepts 30–86400 (values under 150 will hit the rate limit, see above).
+`Language` is `auto` (follow the system), `cs` or `en`. `Theme` is `auto` (follow the system's light/dark mode), `light` or `dark`. `Scale` is the text size in percent; the menu offers 100–150, the file accepts 50–300. `RefreshSeconds` is the time between two usage checks; the menu offers 180–1800, the file accepts 30–86400 (values under 150 will hit the rate limit, see above). `CreditWarnings` switches the usage-credit notifications on or off; the file also keeps `CreditWarnedLevel`, the level last announced, so a restart does not announce it twice.
 
 ## Build from source
 
@@ -160,6 +162,7 @@ Releases are built by GitHub Actions from the tagged commit (`.github/workflows/
 | `UsageParser.cs` | JSON response to limit objects |
 | `CredentialStore.cs` | Reading and writing `.credentials.json` |
 | `Models.cs` | Data types |
+| `CreditWarning.cs` | When the usage credits are worth a notification |
 | `app.ico` | Application icon |
 | `linux/` | The Linux front end (Avalonia), sharing the core files above: |
 | `linux/MainWindow.cs` | Window, menu, tray icon, timers, rendering |
