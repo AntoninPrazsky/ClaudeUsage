@@ -21,6 +21,7 @@
     <Compile Include="..\AppInfo.cs" Link="Core\AppInfo.cs" />
     <Compile Include="..\AppSettings.cs" Link="Core\AppSettings.cs" />
     <Compile Include="..\CredentialStore.cs" Link="Core\CredentialStore.cs" />
+    <Compile Include="..\CreditWarning.cs" Link="Core\CreditWarning.cs" />
     <Compile Include="..\Localization.cs" Link="Core\Localization.cs" />
     <Compile Include="..\Models.cs" Link="Core\Models.cs" />
     <Compile Include="..\UsageClient.cs" Link="Core\UsageClient.cs" />

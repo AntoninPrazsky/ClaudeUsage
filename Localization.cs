@@ -61,6 +61,8 @@ public static class L
         ["credits.detail"] = ("Utraceno {0} z {1} (měsíční strop)", "{0} of {1} spent (monthly cap)"),
         ["credits.detailNoCap"] = ("Utraceno {0}, bez stropu", "{0} spent, no cap"),
         ["credits.capReached"] = ("Strop kreditů dosažen · {0}", "Credit cap reached · {0}"),
+        ["warn.nearCap"] = ("Kredity: utraceno {0} % měsíčního stropu", "Usage credits: {0} % of the monthly cap spent"),
+        ["warn.capReached"] = ("Kredity: měsíční strop dosažen", "Usage credits: monthly cap reached"),
 
         ["button.refresh"] = ("Obnovit teď", "Refresh now"),
 
@@ -75,6 +77,7 @@ public static class L
         ["menu.scale"] = ("Velikost textu", "Text size"),
         ["menu.refreshInterval"] = ("Interval kontroly", "Refresh interval"),
         ["menu.topMost"] = ("Vždy navrchu", "Always on top"),
+        ["menu.creditWarnings"] = ("Upozornit na kredity", "Warn about usage credits"),
         ["menu.minimizeToTray"] = ("Minimalizovat do lišty", "Minimize to tray"),
         ["menu.exit"] = ("Ukončit", "Exit"),
         ["menu.help"] = ("Nápověda", "Help"),

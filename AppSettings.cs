@@ -30,6 +30,12 @@ public sealed class AppSettings
 
     public TimeSpan ResolveRefreshInterval() => TimeSpan.FromSeconds(Math.Clamp(RefreshSeconds, 30, 86400));
 
+    /// <summary>Whether to notify when the usage credits near their monthly cap or reach it.</summary>
+    public bool CreditWarnings { get; set; } = true;
+
+    /// <summary>The <see cref="CreditWarningLevel"/> the credits were at when last seen, so a restart does not announce it again.</summary>
+    public int CreditWarnedLevel { get; set; }
+
     public ThemeMode ResolveThemeMode() => Theme switch
     {
         "light" => ThemeMode.Light,
