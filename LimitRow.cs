@@ -11,6 +11,7 @@ public sealed class LimitRow : TableLayoutPanel
     private readonly BarPanel _bar = new();
     private readonly Label _reset = new();
     private LimitInfo? _info;
+    private double _shownPercent;
 
     public LimitRow()
     {
@@ -70,6 +71,7 @@ public sealed class LimitRow : TableLayoutPanel
     public void Set(LimitInfo? info)
     {
         _info = info;
+        _shownPercent = info?.Percent ?? 0;
         if (info is null)
         {
             _title.Text = "—";
@@ -87,6 +89,19 @@ public sealed class LimitRow : TableLayoutPanel
         Tick();
     }
 
+    /// <summary>Shows the usage credits in the same layout: the amounts spent where a limit shows its reset time.</summary>
+    public void SetCredits(CreditsInfo credits)
+    {
+        _info = null;
+        _shownPercent = credits.Percent ?? 0;
+        _title.Text = credits.Label;
+        _percent.Text = credits.PercentText();
+        _bar.Percent = _shownPercent;
+        _bar.FillColor = ColorFor(_shownPercent, "normal");
+        _percent.ForeColor = _shownPercent >= 90 ? _bar.FillColor : Theme.Current.Text;
+        _reset.Text = credits.DetailText();
+    }
+
     /// <summary>Re-applies the colors of <see cref="Theme.Current"/>.</summary>
     public void ApplyTheme()
     {
@@ -94,7 +109,7 @@ public sealed class LimitRow : TableLayoutPanel
         BackColor = t.Background;
         _title.ForeColor = t.Text;
         _reset.ForeColor = t.SecondaryText;
-        _percent.ForeColor = _info is { Percent: >= 90 } ? _bar.FillColor : t.Text;
+        _percent.ForeColor = _shownPercent >= 90 ? _bar.FillColor : t.Text;
         _bar.Invalidate();
     }
 

@@ -59,6 +59,7 @@ public sealed class MainForm : Form
     private readonly Label _header = new();
     private readonly Label _weeklySection = new();
     private readonly LimitRow _sessionRow = new();
+    private readonly LimitRow _creditsRow = new();
     private readonly FlowLayoutPanel _weeklyRows = new();
     private readonly Dictionary<string, LimitRow> _weeklyByKey = new();
     private readonly TableLayoutPanel _footer = new();
@@ -274,11 +275,13 @@ public sealed class MainForm : Form
         // Rows stay hidden until the first successful fetch.
         _sessionRow.Visible = false;
         _weeklySection.Visible = false;
+        _creditsRow.Visible = false;
 
         _root.Controls.Add(_header);
         _root.Controls.Add(_sessionRow);
         _root.Controls.Add(_weeklySection);
         _root.Controls.Add(_weeklyRows);
+        _root.Controls.Add(_creditsRow);
         _root.Controls.Add(_error);
         _root.Controls.Add(_footer);
         Controls.Add(_root);
@@ -394,6 +397,7 @@ public sealed class MainForm : Form
         _trayMenu.Renderer = new ThemedMenuRenderer(t);
 
         _sessionRow.ApplyTheme();
+        _creditsRow.ApplyTheme();
         foreach (var row in _weeklyByKey.Values) row.ApplyTheme();
 
         if (IsHandleCreated) Theme.ApplyTitleBar(this, t.IsDark);
@@ -488,6 +492,7 @@ public sealed class MainForm : Form
         _error.Margin = new Padding(0, 0, 0, Px(10));
 
         _sessionRow.ApplyScale(width, _scale, DeviceDpi);
+        _creditsRow.ApplyScale(width, _scale, DeviceDpi);
         foreach (var row in _weeklyByKey.Values) row.ApplyScale(width, _scale, DeviceDpi);
 
         ResumeLayout(true);
@@ -532,6 +537,7 @@ public sealed class MainForm : Form
             if (_snapshot.Session is { } s) parts.Add($"{L.Get("tray.session")} {Math.Round(s.Percent):0} %");
             if (_snapshot.WeeklyAll is { } w) parts.Add($"{w.Label} {Math.Round(w.Percent):0} %");
             foreach (var sc in _snapshot.WeeklyScoped) parts.Add($"{sc.Label} {Math.Round(sc.Percent):0} %");
+            if (_snapshot.Credits is { } credits) parts.Add(credits.TrayText());
             if (parts.Count > 0) text += "\n" + string.Join(" · ", parts);
         }
         if (text.Length > 127) text = text[..126] + "…";
@@ -665,6 +671,9 @@ public sealed class MainForm : Form
             _weeklyByKey.Remove(stale);
         }
         _weeklyRows.ResumeLayout();
+
+        _creditsRow.Visible = snapshot.Credits is not null;
+        if (snapshot.Credits is { } credits) _creditsRow.SetCredits(credits);
     }
 
     private void OnTick()

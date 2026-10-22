@@ -13,6 +13,7 @@ public sealed class LimitRow : Grid
     private readonly BarControl _bar = new();
     private readonly TextBlock _reset = new();
     private LimitInfo? _info;
+    private double _shownPercent;
 
     public LimitRow()
     {
@@ -53,6 +54,7 @@ public sealed class LimitRow : Grid
     public void Set(LimitInfo? info)
     {
         _info = info;
+        _shownPercent = info?.Percent ?? 0;
         if (info is null)
         {
             _title.Text = "—";
@@ -70,13 +72,26 @@ public sealed class LimitRow : Grid
         Tick();
     }
 
+    /// <summary>Shows the usage credits in the same layout: the amounts spent where a limit shows its reset time.</summary>
+    public void SetCredits(CreditsInfo credits)
+    {
+        _info = null;
+        _shownPercent = credits.Percent ?? 0;
+        _title.Text = credits.Label;
+        _percent.Text = credits.PercentText();
+        _bar.Percent = _shownPercent;
+        _bar.Fill = ColorFor(_shownPercent, "normal");
+        _percent.Foreground = _shownPercent >= 90 ? _bar.Fill : AppTheme.Current.Text;
+        _reset.Text = credits.DetailText();
+    }
+
     /// <summary>Re-applies the colors of <see cref="AppTheme.Current"/>.</summary>
     public void ApplyTheme()
     {
         var t = AppTheme.Current;
         _title.Foreground = t.Text;
         _reset.Foreground = t.SecondaryText;
-        _percent.Foreground = _info is { Percent: >= 90 } ? _bar.Fill : t.Text;
+        _percent.Foreground = _shownPercent >= 90 ? _bar.Fill : t.Text;
         _bar.InvalidateVisual();
     }
 
