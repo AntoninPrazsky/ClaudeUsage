@@ -709,7 +709,7 @@ public sealed class MainWindow : Window
         }
         var wait = _nextFetch - DateTime.Now;
         parts.Add(wait > TimeSpan.Zero
-            ? L.F(_rateLimited ? "status.rateLimited" : _nextForReset ? "status.nextReset" : "status.next", FormatWait(wait))
+            ? L.F(_rateLimited ? "status.rateLimited" : _nextForReset ? "status.nextReset" : "status.next", FormatWait(wait).Replace(' ', '\u00A0'))
             : L.Get("status.refreshing"));
         _status.Text = string.Join(" · ", parts);
         _status.Foreground = _rateLimited ? AppTheme.Warning : AppTheme.Current.SecondaryText;

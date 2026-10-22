@@ -740,7 +740,7 @@ public sealed class MainForm : Form
         }
         var wait = _nextFetch - DateTime.Now;
         parts.Add(wait > TimeSpan.Zero
-            ? L.F(_rateLimited ? "status.rateLimited" : _nextForReset ? "status.nextReset" : "status.next", FormatWait(wait))
+            ? L.F(_rateLimited ? "status.rateLimited" : _nextForReset ? "status.nextReset" : "status.next", FormatWait(wait).Replace(' ', '\u00A0'))
             : L.Get("status.refreshing"));
         _status.Text = string.Join(" · ", parts);
         _status.ForeColor = _rateLimited ? Color.FromArgb(240, 140, 0) : Theme.Current.SecondaryText;
