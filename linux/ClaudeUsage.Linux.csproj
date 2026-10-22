@@ -24,6 +24,7 @@
     <Compile Include="..\CreditWarning.cs" Link="Core\CreditWarning.cs" />
     <Compile Include="..\Localization.cs" Link="Core\Localization.cs" />
     <Compile Include="..\Models.cs" Link="Core\Models.cs" />
+    <Compile Include="..\RefreshPlan.cs" Link="Core\RefreshPlan.cs" />
     <Compile Include="..\UsageClient.cs" Link="Core\UsageClient.cs" />
     <Compile Include="..\UsageParser.cs" Link="Core\UsageParser.cs" />
   </ItemGroup>

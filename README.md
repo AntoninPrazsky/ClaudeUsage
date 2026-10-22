@@ -17,7 +17,7 @@ This is an unofficial tool for developers and other technical users. It is not a
 - **Weekly limits**: *All models* plus one row per model-scoped limit. Rows are built from the API response, so new per-model limits show up without an update.
 - **Usage credits**: when the account has extra usage switched on, a row below the weekly limits shows what has been spent against the monthly cap, in the account's own currency, and the tray tooltip lists it too. Accounts without credits see no such row. The response carries no prepaid balance, so none is shown.
 - **Credit warnings**: one notification (a tray balloon on Windows, a desktop notification on Linux) when the credits reach 80 % of the monthly cap and one when the cap is reached. Settings → *Warn about usage credits* turns it off.
-- Auto-refresh every 5 minutes by default (Settings → Refresh interval: 3–30 minutes), plus a manual refresh button. On HTTP 429 the app keeps the last values and backs off automatically.
+- Auto-refresh every 5 minutes by default (Settings → Refresh interval: 3–30 minutes), plus a manual refresh button. On HTTP 429 the app keeps the last values and backs off automatically. While the session or the all-models weekly limit is used up and no usage credits carry the work, the next automatic check waits for that limit's reset (plus a minute) instead of the interval; the status line says so, and the refresh button still checks right away.
 - **System tray icon** with a tooltip listing all percentages. Minimizing hides the window to the tray; left-click the icon to bring it back, right-click for a menu.
 - **English and Czech UI** (Settings → Language). The default follows the system display language.
 - **Light and dark theme** (Settings → Theme). The default follows the system: the Windows app mode, switching live when Windows does; on Linux the desktop's light/dark preference.
@@ -162,6 +162,7 @@ Releases are built by GitHub Actions from the tagged commit (`.github/workflows/
 | `UsageParser.cs` | JSON response to limit objects |
 | `CredentialStore.cs` | Reading and writing `.credentials.json` |
 | `Models.cs` | Data types |
+| `RefreshPlan.cs` | When the next automatic check is due |
 | `CreditWarning.cs` | When the usage credits are worth a notification |
 | `app.ico` | Application icon |
 | `linux/` | The Linux front end (Avalonia), sharing the core files above: |

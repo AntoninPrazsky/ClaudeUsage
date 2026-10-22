@@ -78,6 +78,7 @@ public sealed class MainWindow : Window
 
     private UsageSnapshot? _snapshot;
     private DateTime _nextFetch = DateTime.Now;
+    private bool _nextForReset; // the next check waits for a limit's reset, not for the interval
     private bool _busy;
     private bool _rateLimited;
     private int _rateLimitStrikes;
@@ -541,6 +542,7 @@ public sealed class MainWindow : Window
         _trayRefresh.IsEnabled = false;
         _status.Text = L.Get("status.loading");
         var delay = _settings.ResolveRefreshInterval();
+        _nextForReset = false;
         try
         {
             _snapshot = await _client.FetchAsync(CancellationToken.None);
@@ -549,6 +551,7 @@ public sealed class MainWindow : Window
             _error.IsVisible = false;
             Render(_snapshot);
             CheckCreditWarning(_snapshot);
+            delay = PlanDelay(_snapshot, delay);
         }
         catch (RateLimitedException ex)
         {
@@ -559,6 +562,12 @@ public sealed class MainWindow : Window
             delay = TimeSpan.FromSeconds(delay.TotalSeconds * Math.Pow(2, _rateLimitStrikes));
             if (ex.RetryAfter is { } retryAfter && retryAfter > delay) delay = retryAfter;
             if (delay > MaxBackoff) delay = MaxBackoff;
+            // The values held may say the next change is hours away: the back-off is only a lower bound.
+            if (_snapshot is not null && RefreshPlan.NextAt(_snapshot, _settings.ResolveRefreshInterval()) is (var resetAt, true)
+                && resetAt - DateTimeOffset.Now > delay)
+            {
+                delay = resetAt - DateTimeOffset.Now;
+            }
             _error.IsVisible = false;
         }
         catch (UsageException ex)
@@ -604,6 +613,17 @@ public sealed class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// The wait before the next check after a fresh snapshot: the interval, or, while the session or all-models limit is
+    /// used up and no credits carry the work, until that limit resets (see <see cref="RefreshPlan"/>).
+    /// </summary>
+    private TimeSpan PlanDelay(UsageSnapshot snapshot, TimeSpan interval)
+    {
+        var (at, forReset) = RefreshPlan.NextAt(snapshot, interval);
+        _nextForReset = forReset;
+        return at - DateTimeOffset.Now;
+    }
+
     private void ScheduleNextFetch(TimeSpan delay)
     {
         _nextFetch = DateTime.Now + delay;
@@ -619,8 +639,8 @@ public sealed class MainWindow : Window
         if (_busy) return;
 
         // Re-plan the next check relative to the last successful one, but never sooner than in a few seconds.
-        var last = _snapshot?.FetchedAt.LocalDateTime ?? DateTime.Now;
-        var wait = last + _settings.ResolveRefreshInterval() - DateTime.Now;
+        var interval = _settings.ResolveRefreshInterval();
+        var wait = _snapshot is null ? interval : PlanDelay(_snapshot, interval);
         ScheduleNextFetch(wait > TimeSpan.FromSeconds(3) ? wait : TimeSpan.FromSeconds(3));
         UpdateStatus();
     }
@@ -674,6 +694,9 @@ public sealed class MainWindow : Window
         _sessionRow.Tick();
         foreach (var row in _weeklyByKey.Values) row.Tick();
         UpdateStatus();
+
+        // A wait of hours outlives sleep and timer drift: the absolute target decides, the timer is only the usual way there.
+        if (!_busy && DateTime.Now > _nextFetch + TimeSpan.FromSeconds(10)) _ = FetchAsync();
     }
 
     private void UpdateStatus()
@@ -686,7 +709,7 @@ public sealed class MainWindow : Window
         }
         var wait = _nextFetch - DateTime.Now;
         parts.Add(wait > TimeSpan.Zero
-            ? L.F(_rateLimited ? "status.rateLimited" : "status.next", FormatWait(wait))
+            ? L.F(_rateLimited ? "status.rateLimited" : _nextForReset ? "status.nextReset" : "status.next", FormatWait(wait))
             : L.Get("status.refreshing"));
         _status.Text = string.Join(" · ", parts);
         _status.Foreground = _rateLimited ? AppTheme.Warning : AppTheme.Current.SecondaryText;
@@ -695,6 +718,8 @@ public sealed class MainWindow : Window
     private static string FormatWait(TimeSpan wait)
     {
         var total = (int)Math.Ceiling(wait.TotalSeconds);
+        if (total >= 86400) return L.F("time.dh", total / 86400, total % 86400 / 3600);
+        if (total >= 3600) return L.F("time.hm", total / 3600, total % 3600 / 60);
         return total >= 60 ? L.F("time.ms", total / 60, total % 60) : L.F("time.s", total);
     }
 }

@@ -55,6 +55,7 @@ public static class L
         ["status.loading"] = ("Načítám…", "Loading…"),
         ["status.updated"] = ("Aktualizováno {0}", "Updated {0}"),
         ["status.next"] = ("další za {0}", "next in {0}"),
+        ["status.nextReset"] = ("další po obnovení limitu za {0}", "next after the limit resets, in {0}"),
         ["status.rateLimited"] = ("server omezil počet dotazů, další pokus za {0}", "rate limited by the server, next attempt in {0}"),
         ["status.refreshing"] = ("obnovuji…", "refreshing…"),
         ["credits.title"] = ("Kredity", "Usage credits"),
