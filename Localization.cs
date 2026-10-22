@@ -56,6 +56,10 @@ public static class L
         ["status.next"] = ("další za {0}", "next in {0}"),
         ["status.rateLimited"] = ("server omezil počet dotazů, další pokus za {0}", "rate limited by the server, next attempt in {0}"),
         ["status.refreshing"] = ("obnovuji…", "refreshing…"),
+        ["credits.title"] = ("Kredity", "Usage credits"),
+        ["credits.detail"] = ("Utraceno {0} z {1} (měsíční strop)", "{0} of {1} spent (monthly cap)"),
+        ["credits.detailNoCap"] = ("Utraceno {0}, bez stropu", "{0} spent, no cap"),
+
         ["button.refresh"] = ("Obnovit teď", "Refresh now"),
 
         ["menu.settings"] = ("Nastavení", "Settings"),
@@ -89,6 +93,7 @@ public static class L
         ["tray.show"] = ("Zobrazit", "Show"),
         ["tray.refresh"] = ("Obnovit", "Refresh"),
         ["tray.session"] = ("Relace", "Session"),
+        ["tray.credits"] = ("Kredity", "Credits"),
         ["tray.balloon"] = (
             "Aplikace běží dál v systémové liště. Kliknutím na ikonu ji zobrazíte.",
             "The app keeps running in the system tray. Click the icon to show it."),

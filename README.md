@@ -15,6 +15,7 @@ This is an unofficial tool for developers and other technical users. It is not a
 
 - **Current session**: percent used, percent left, reset time (relative and absolute).
 - **Weekly limits**: *All models* plus one row per model-scoped limit. Rows are built from the API response, so new per-model limits show up without an update.
+- **Usage credits**: when the account has extra usage switched on, a row below the weekly limits shows what has been spent against the monthly cap, in the account's own currency, and the tray tooltip lists it too. Accounts without credits see no such row. The response carries no prepaid balance, so none is shown.
 - Auto-refresh every 5 minutes by default (Settings → Refresh interval: 3–30 minutes), plus a manual refresh button. On HTTP 429 the app keeps the last values and backs off automatically.
 - **System tray icon** with a tooltip listing all percentages. Minimizing hides the window to the tray; left-click the icon to bring it back, right-click for a menu.
 - **English and Czech UI** (Settings → Language). The default follows the system display language.
@@ -75,7 +76,7 @@ It puts the app in `~/.local/share/claudeusage`, adds *Claude Usage* to the menu
    anthropic-beta: oauth-2025-04-20
    ```
 
-3. Renders the `limits` array (`session`, `weekly_all`, `weekly_scoped`), falling back to the older `five_hour` / `seven_day` fields if the array is missing.
+3. Renders the `limits` array (`session`, `weekly_all`, `weekly_scoped`), falling back to the older `five_hour` / `seven_day` fields if the array is missing. When usage credits are on, the `spend` object (or the older `extra_usage`) gives the amount spent and the monthly cap, as whole minor units with the currency and the number of digits beside them.
 
 This endpoint is undocumented and used internally by Claude Code; Anthropic may change it at any time.
 

@@ -49,13 +49,67 @@ public static class UsageParser
             }
         }
 
-        if (session is null && weeklyAll is null && scoped.Count == 0)
+        var credits = ParseCredits(root);
+
+        if (session is null && weeklyAll is null && scoped.Count == 0 && credits is null)
         {
             throw new InvalidOperationException(L.Get("err.noLimits"));
         }
 
-        return new UsageSnapshot(session, weeklyAll, scoped, DateTimeOffset.Now, creds.SubscriptionType);
+        return new UsageSnapshot(session, weeklyAll, scoped, DateTimeOffset.Now, creds.SubscriptionType, credits);
     }
+
+    /// <summary>
+    /// The usage credits. "spend" is the self-describing copy (amount, currency, exponent) and is preferred;
+    /// "extra_usage" is the older shape and the fallback. Every field is optional, and null means nothing to show.
+    /// </summary>
+    private static CreditsInfo? ParseCredits(JsonElement root)
+    {
+        JsonElement spend = default, extra = default;
+        var hasSpend = root.TryGetProperty("spend", out spend) && spend.ValueKind == JsonValueKind.Object;
+        var hasExtra = root.TryGetProperty("extra_usage", out extra) && extra.ValueKind == JsonValueKind.Object;
+        if (!hasSpend && !hasExtra) return null;
+
+        var enabled = (hasSpend ? GetBool(spend, "enabled") : null) ?? (hasExtra ? GetBool(extra, "is_enabled") : null) ?? false;
+        if (!enabled) return null;
+
+        var spent = (hasSpend ? ReadMoney(spend, "used") : null) ?? (hasExtra ? LegacyMoney(extra, "used_credits") : null);
+        if (spent is null) return null;
+
+        Money? cap = null;
+        if (hasSpend)
+        {
+            if (spend.TryGetProperty("cap", out var capEl) && capEl.ValueKind == JsonValueKind.Object) cap = ReadMoney(capEl, "money");
+            cap ??= ReadMoney(spend, "limit");
+        }
+        if (hasExtra) cap ??= LegacyMoney(extra, "monthly_limit");
+
+        var capReached = hasExtra && GetBool(extra, "spend_limit_reached") == true;
+        var reason = (hasSpend ? GetString(spend, "disabled_reason") : null) ?? (hasExtra ? GetString(extra, "disabled_reason") : null);
+        return new CreditsInfo(spent, cap, capReached, reason);
+    }
+
+    /// <summary>{ "amount_minor": 735, "currency": "EUR", "exponent": 2 } under the given name.</summary>
+    private static Money? ReadMoney(JsonElement parent, string name)
+    {
+        if (!parent.TryGetProperty(name, out var m) || m.ValueKind != JsonValueKind.Object) return null;
+        var amount = GetDouble(m, "amount_minor");
+        if (amount is null) return null;
+        return new Money((long)Math.Round(amount.Value), GetString(m, "currency") ?? "", Exponent(GetDouble(m, "exponent")));
+    }
+
+    /// <summary>An amount in minor units straight on the extra_usage object, whose currency and digits sit beside it.</summary>
+    private static Money? LegacyMoney(JsonElement extra, string name)
+    {
+        var amount = GetDouble(extra, name);
+        if (amount is null) return null;
+        return new Money((long)Math.Round(amount.Value), GetString(extra, "currency") ?? "", Exponent(GetDouble(extra, "decimal_places")));
+    }
+
+    private static int Exponent(double? digits) => (int)Math.Clamp(digits ?? 2, 0, 6);
+
+    private static bool? GetBool(JsonElement el, string name) =>
+        el.TryGetProperty(name, out var v) && v.ValueKind is JsonValueKind.True or JsonValueKind.False ? v.GetBoolean() : null;
 
     private static string? ScopeName(JsonElement limit)
     {

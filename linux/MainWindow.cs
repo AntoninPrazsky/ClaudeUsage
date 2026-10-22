@@ -67,6 +67,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock _header = new();
     private readonly TextBlock _weeklySection = new();
     private readonly LimitRow _sessionRow = new();
+    private readonly LimitRow _creditsRow = new();
     private readonly StackPanel _weeklyRows = new();
     private readonly Dictionary<string, LimitRow> _weeklyByKey = new();
     private readonly Grid _footer = new();
@@ -296,11 +297,13 @@ public sealed class MainWindow : Window
         // Rows stay hidden until the first successful fetch.
         _sessionRow.IsVisible = false;
         _weeklySection.IsVisible = false;
+        _creditsRow.IsVisible = false;
 
         _root.Children.Add(_header);
         _root.Children.Add(_sessionRow);
         _root.Children.Add(_weeklySection);
         _root.Children.Add(_weeklyRows);
+        _root.Children.Add(_creditsRow);
         _root.Children.Add(_error);
         _root.Children.Add(_footer);
 
@@ -414,6 +417,7 @@ public sealed class MainWindow : Window
         _weeklySection.Foreground = t.SectionText;
         _error.Foreground = t.Error;
         _sessionRow.ApplyTheme();
+        _creditsRow.ApplyTheme();
         foreach (var row in _weeklyByKey.Values) row.ApplyTheme();
         SyncChecks();
         UpdateStatus();
@@ -514,6 +518,7 @@ public sealed class MainWindow : Window
             if (_snapshot.Session is { } s) parts.Add($"{L.Get("tray.session")} {Math.Round(s.Percent):0} %");
             if (_snapshot.WeeklyAll is { } w) parts.Add($"{w.Label} {Math.Round(w.Percent):0} %");
             foreach (var sc in _snapshot.WeeklyScoped) parts.Add($"{sc.Label} {Math.Round(sc.Percent):0} %");
+            if (_snapshot.Credits is { } credits) parts.Add(credits.TrayText());
             if (parts.Count > 0) text += "\n" + string.Join(" · ", parts);
         }
         _tray.ToolTipText = text;
@@ -633,6 +638,9 @@ public sealed class MainWindow : Window
         {
             _weeklyByKey.Remove(stale);
         }
+
+        _creditsRow.IsVisible = snapshot.Credits is not null;
+        if (snapshot.Credits is { } credits) _creditsRow.SetCredits(credits);
     }
 
     private void OnTick()
