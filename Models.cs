@@ -29,7 +29,29 @@ public sealed record UsageSnapshot(
     IReadOnlyList<LimitInfo> WeeklyScoped,
     DateTimeOffset FetchedAt,
     string? SubscriptionType,
-    CreditsInfo? Credits = null);
+    CreditsInfo? Credits = null)
+{
+    /// <summary>
+    /// True when a plan limit at 100 % does not stop the work because usage credits carry it. Only the session and the
+    /// all-models weekly limit count: that credits also cover one model's weekly limit has not been observed.
+    /// </summary>
+    public bool OnCredits(LimitInfo? limit) =>
+        Credits is { Carrying: true } && limit is { Percent: >= 100, Kind: "session" or "weekly_all" };
+
+    /// <summary>The parts of the tray tooltip: every limit's percentage, one that credits carry marked as such, then the credits.</summary>
+    public List<string> TrayParts()
+    {
+        var parts = new List<string>();
+        if (Session is { } s) parts.Add(TrayPart(L.Get("tray.session"), s));
+        if (WeeklyAll is { } w) parts.Add(TrayPart(w.Label, w));
+        foreach (var sc in WeeklyScoped) parts.Add(TrayPart(sc.Label, sc));
+        if (Credits is { } c) parts.Add(c.TrayText());
+        return parts;
+    }
+
+    private string TrayPart(string label, LimitInfo limit) =>
+        $"{label} {Math.Round(limit.Percent):0} %{(OnCredits(limit) ? " " + L.Get("tray.onCredits") : "")}";
+}
 
 /// <summary>An amount as the API sends it: whole minor units (cents), the currency and the number of digits the minor unit has.</summary>
 public sealed record Money(long AmountMinor, string Currency, int Exponent)
@@ -59,6 +81,12 @@ public sealed record CreditsInfo(Money Spent, Money? Cap, bool CapReached, strin
 {
     public string Label => L.Get("credits.title");
 
+    /// <summary>
+    /// True while the credits can still be spent: the monthly cap is not reached and the response gives no reason
+    /// they are off. An exhausted plan limit then blocks nothing.
+    /// </summary>
+    public bool Carrying => !CapReached && DisabledReason is null;
+
     /// <summary>Share of the cap spent, from the amounts (the response's own percent is a rounded integer); null without a cap.</summary>
     public double? Percent => Cap is { AmountMinor: > 0 } cap ? Spent.AmountMinor * 100.0 / cap.AmountMinor : null;
 
@@ -76,9 +104,13 @@ public sealed record CreditsInfo(Money Spent, Money? Cap, bool CapReached, strin
         return L.F("limit.used", shown);
     }
 
-    public string DetailText() => Cap is { } cap
-        ? L.F("credits.detail", Spent.Plain(), cap.Format())
-        : L.F("credits.detailNoCap", Spent.Format());
+    public string DetailText()
+    {
+        var detail = Cap is { } cap
+            ? L.F("credits.detail", Spent.Plain(), cap.Format())
+            : L.F("credits.detailNoCap", Spent.Format());
+        return CapReached ? L.F("credits.capReached", detail) : detail;
+    }
 
     /// <summary>The short form for the tray tooltip, which Windows cuts at 127 characters.</summary>
     public string TrayText() => Cap is { } cap

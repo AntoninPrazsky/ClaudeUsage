@@ -13,7 +13,8 @@ public sealed class LimitRow : Grid
     private readonly BarControl _bar = new();
     private readonly TextBlock _reset = new();
     private LimitInfo? _info;
-    private double _shownPercent;
+    private double _alarm;
+    private bool _onCredits;
 
     public LimitRow()
     {
@@ -36,6 +37,7 @@ public sealed class LimitRow : Grid
         _bar.Margin = new Thickness(0, 0, 0, 5);
 
         _reset.FontSize = 13;
+        _reset.TextWrapping = TextWrapping.Wrap; // the longer "continuing on credits" line wraps instead of being cut
 
         SetColumn(_percent, 1);
         SetRow(_bar, 1);
@@ -51,10 +53,11 @@ public sealed class LimitRow : Grid
         Set(null);
     }
 
-    public void Set(LimitInfo? info)
+    public void Set(LimitInfo? info, bool onCredits = false)
     {
         _info = info;
-        _shownPercent = info?.Percent ?? 0;
+        _onCredits = onCredits;
+        _alarm = info?.Percent ?? 0;
         if (info is null)
         {
             _title.Text = "—";
@@ -67,7 +70,7 @@ public sealed class LimitRow : Grid
         _title.Text = info.Label;
         _percent.Text = L.F("limit.used", Math.Round(info.Percent));
         _bar.Percent = info.Percent;
-        _bar.Fill = ColorFor(info.Percent, info.Severity);
+        _bar.Fill = ColorFor(info.Percent, info.Severity, onCredits);
         _percent.Foreground = info.Percent >= 90 ? _bar.Fill : AppTheme.Current.Text;
         Tick();
     }
@@ -75,13 +78,15 @@ public sealed class LimitRow : Grid
     /// <summary>Shows the usage credits in the same layout: the amounts spent where a limit shows its reset time.</summary>
     public void SetCredits(CreditsInfo credits)
     {
+        var percent = credits.Percent ?? 0;
+        // A reached cap is the one state here that blocks work, so it reads like an exhausted limit whatever the bar says.
         _info = null;
-        _shownPercent = credits.Percent ?? 0;
+        _alarm = credits.CapReached ? 100 : percent;
         _title.Text = credits.Label;
         _percent.Text = credits.PercentText();
-        _bar.Percent = _shownPercent;
-        _bar.Fill = ColorFor(_shownPercent, "normal");
-        _percent.Foreground = _shownPercent >= 90 ? _bar.Fill : AppTheme.Current.Text;
+        _bar.Percent = percent;
+        _bar.Fill = ColorFor(_alarm, "normal");
+        _percent.Foreground = _alarm >= 90 ? _bar.Fill : AppTheme.Current.Text;
         _reset.Text = credits.DetailText();
     }
 
@@ -91,7 +96,7 @@ public sealed class LimitRow : Grid
         var t = AppTheme.Current;
         _title.Foreground = t.Text;
         _reset.Foreground = t.SecondaryText;
-        _percent.Foreground = _shownPercent >= 90 ? _bar.Fill : t.Text;
+        _percent.Foreground = _alarm >= 90 ? _bar.Fill : t.Text;
         _bar.InvalidateVisual();
     }
 
@@ -100,11 +105,14 @@ public sealed class LimitRow : Grid
     {
         if (_info is null) return;
         var remaining = Math.Max(0, 100 - _info.Percent);
-        var prefix = _info.Percent >= 100 ? L.Get("limit.reached") : L.F("limit.left", Math.Round(remaining));
+        var prefix = _info.Percent >= 100 ? L.Get(_onCredits ? "limit.reachedCredits" : "limit.reached") : L.F("limit.left", Math.Round(remaining));
         _reset.Text = _info.ResetsAt is { } at
-            ? L.F("limit.resets", prefix, Relative(at), Absolute(at))
+            ? L.F("limit.resets", prefix, NoBreak(Relative(at)), NoBreak(Absolute(at)))
             : L.F("limit.noReset", prefix);
     }
+
+    /// <summary>Keeps a time span or a date in one piece when the line wraps.</summary>
+    private static string NoBreak(string text) => text.Replace(' ', ' ');
 
     public static string Relative(DateTimeOffset at)
     {
@@ -125,8 +133,10 @@ public sealed class LimitRow : Grid
         return local.ToString(L.Get("time.date"), L.Culture);
     }
 
-    private static IBrush ColorFor(double percent, string severity)
+    private static IBrush ColorFor(double percent, string severity, bool onCredits = false)
     {
+        // A limit that credits carry blocks nothing: orange, not the red of one that does.
+        if (onCredits) return AppTheme.Warning;
         var sev = severity.ToLowerInvariant();
         if (percent >= 90 || sev is "critical" or "exceeded" or "locked") return AppTheme.Brush(217, 54, 62);
         if (percent >= 70 || sev is "warning" or "elevated") return AppTheme.Warning;
