@@ -514,11 +514,7 @@ public sealed class MainWindow : Window
         var text = _header.Text ?? "Claude";
         if (_snapshot is not null)
         {
-            var parts = new List<string>();
-            if (_snapshot.Session is { } s) parts.Add($"{L.Get("tray.session")} {Math.Round(s.Percent):0} %");
-            if (_snapshot.WeeklyAll is { } w) parts.Add($"{w.Label} {Math.Round(w.Percent):0} %");
-            foreach (var sc in _snapshot.WeeklyScoped) parts.Add($"{sc.Label} {Math.Round(sc.Percent):0} %");
-            if (_snapshot.Credits is { } credits) parts.Add(credits.TrayText());
+            var parts = _snapshot.TrayParts();
             if (parts.Count > 0) text += "\n" + string.Join(" · ", parts);
         }
         _tray.ToolTipText = text;
@@ -614,7 +610,7 @@ public sealed class MainWindow : Window
 
         _sessionRow.IsVisible = snapshot.Session is not null;
         _weeklySection.IsVisible = true;
-        _sessionRow.Set(snapshot.Session);
+        _sessionRow.Set(snapshot.Session, snapshot.OnCredits(snapshot.Session));
 
         var weekly = new List<LimitInfo>();
         if (snapshot.WeeklyAll is not null) weekly.Add(snapshot.WeeklyAll);
@@ -632,7 +628,7 @@ public sealed class MainWindow : Window
                 _weeklyByKey[info.Key] = row;
             }
             _weeklyRows.Children.Add(row);
-            row.Set(info);
+            row.Set(info, snapshot.OnCredits(info));
         }
         foreach (var stale in _weeklyByKey.Keys.Where(k => !seen.Contains(k)).ToList())
         {

@@ -37,6 +37,7 @@ public static class L
         ["limit.used"] = ("{0} % využito", "{0} % used"),
         ["limit.left"] = ("Zbývá {0} %", "{0} % left"),
         ["limit.reached"] = ("Limit vyčerpán", "Limit reached"),
+        ["limit.reachedCredits"] = ("Limit vyčerpán · pokračuje se z kreditů", "Limit reached · continuing on credits"),
         ["limit.resets"] = ("{0} · obnoví se za {1} ({2})", "{0} · resets in {1} ({2})"),
         ["limit.noReset"] = ("{0} · zatím bez naplánovaného obnovení", "{0} · no reset scheduled yet"),
 
@@ -59,6 +60,7 @@ public static class L
         ["credits.title"] = ("Kredity", "Usage credits"),
         ["credits.detail"] = ("Utraceno {0} z {1} (měsíční strop)", "{0} of {1} spent (monthly cap)"),
         ["credits.detailNoCap"] = ("Utraceno {0}, bez stropu", "{0} spent, no cap"),
+        ["credits.capReached"] = ("Strop kreditů dosažen · {0}", "Credit cap reached · {0}"),
 
         ["button.refresh"] = ("Obnovit teď", "Refresh now"),
 
@@ -94,6 +96,7 @@ public static class L
         ["tray.refresh"] = ("Obnovit", "Refresh"),
         ["tray.session"] = ("Relace", "Session"),
         ["tray.credits"] = ("Kredity", "Credits"),
+        ["tray.onCredits"] = ("(kredity)", "(credits)"),
         ["tray.balloon"] = (
             "Aplikace běží dál v systémové liště. Kliknutím na ikonu ji zobrazíte.",
             "The app keeps running in the system tray. Click the icon to show it."),
