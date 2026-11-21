@@ -53,22 +53,37 @@ public sealed class AboutForm : Form
             Margin = new Padding(0, Px(2), Px(16), 0),
         };
         layout.Controls.Add(picture, 0, 0);
-        layout.SetRowSpan(picture, 10);
+        layout.SetRowSpan(picture, 6);
 
         layout.Controls.Add(Line(AppInfo.Name, t.Text, new Font("Segoe UI Semibold", 13f * scale), 0), 1, 0);
         layout.Controls.Add(Line(L.F("about.version", AppInfo.Version), t.SecondaryText, Font, Px(10)), 1, 1);
         layout.Controls.Add(Line(L.Get("about.description"), t.Text, Font, Px(10)), 1, 2);
         layout.Controls.Add(Line(L.Get("about.unofficial"), t.SecondaryText, Font, Px(12)), 1, 3);
         layout.Controls.Add(Line(L.Get("about.source"), t.SecondaryText, Font, 0), 1, 4);
-        layout.Controls.Add(Link(AppInfo.RepositoryUrl, AppInfo.RepositoryUrl, Px(14)), 1, 5);
+        layout.Controls.Add(Link(AppInfo.RepositoryUrl, AppInfo.RepositoryUrl, Px(16)), 1, 5);
 
-        var scene = new SceneView(Px(TextWidth), t.IsDark) { Margin = new Padding(0, 0, 0, Px(6)) };
+        // The game's advert: a band of its own between two rules across the whole window, centred, in English
+        AddSpanning(layout, Rule(Px(14)), 6);
+        var scene = new SceneView(Px(TextWidth), t.IsDark) { Margin = new Padding(0, 0, 0, Px(6)), Anchor = AnchorStyles.None };
         scene.Click += (_, _) => Open(AppInfo.GameUrl);
-        layout.Controls.Add(scene, 1, 6);
-        layout.Controls.Add(Line(L.Get("about.game"), t.SecondaryText, Font, 0), 1, 7);
-        layout.Controls.Add(Link(L.Get("about.gameLink"), AppInfo.GameUrl, Px(12)), 1, 8);
+        AddSpanning(layout, scene, 7);
+        var caption = Line(AppInfo.GameCaption, t.SecondaryText, Font, 0);
+        caption.Anchor = AnchorStyles.None;
+        AddSpanning(layout, caption, 8);
+        var gameLink = Link(AppInfo.GameLinkText, AppInfo.GameUrl, Px(14));
+        gameLink.Anchor = AnchorStyles.None;
+        AddSpanning(layout, gameLink, 9);
+        AddSpanning(layout, Rule(Px(12)), 10);
 
-        var footer = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Fill, Margin = Padding.Empty };
+        // Its minimum width keeps the text column the full width whatever the language wraps the text to
+        var footer = new TableLayoutPanel
+        {
+            AutoSize = true,
+            ColumnCount = 2,
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
+            MinimumSize = new Size(Px(TextWidth), 0),
+        };
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         footer.Controls.Add(Line($"{AppInfo.Copyright} · {L.Get("about.license")}", t.SecondaryText, Font, 0), 0, 0);
@@ -89,7 +104,7 @@ public sealed class AboutForm : Form
         close.FlatAppearance.MouseOverBackColor = t.MenuHover;
         close.FlatAppearance.MouseDownBackColor = t.MenuBorder;
         footer.Controls.Add(close, 1, 0);
-        layout.Controls.Add(footer, 1, 9);
+        layout.Controls.Add(footer, 1, 11);
 
         AcceptButton = close;
         CancelButton = close;
@@ -111,6 +126,21 @@ public sealed class AboutForm : Form
         Font = font,
         Margin = new Padding(0, 0, 0, spaceBelow),
     };
+
+    /// <summary>A thin line across the window, in the colour of the menus' borders.</summary>
+    private Panel Rule(int spaceBelow) => new()
+    {
+        Height = Math.Max(1, Px(1)),
+        BackColor = Theme.Current.MenuBorder,
+        Anchor = AnchorStyles.Left | AnchorStyles.Right,
+        Margin = new Padding(0, 0, 0, spaceBelow),
+    };
+
+    private static void AddSpanning(TableLayoutPanel layout, Control control, int row)
+    {
+        layout.Controls.Add(control, 0, row);
+        layout.SetColumnSpan(control, 2);
+    }
 
     private LinkLabel Link(string text, string url, int spaceBelow)
     {
@@ -154,7 +184,7 @@ public sealed class AboutForm : Form
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
             Cursor = Cursors.Hand;
             AccessibleRole = AccessibleRole.Animation;
-            AccessibleName = L.Get("about.gameLink");
+            AccessibleName = AppInfo.GameLinkText;
             _timer.Tick += (_, _) => NextFrame();
             NextFrame();
         }

@@ -93,8 +93,6 @@ public static class L
             "Neoficiální nástroj pro vývojáře a další technické uživatele. Není spojený se společností Anthropic ani jí podporovaný.",
             "An unofficial tool for developers and other technical users. It is not affiliated with or endorsed by Anthropic."),
         ["about.source"] = ("Zdrojový kód a nové verze:", "Source code and new versions:"),
-        ["about.game"] = ("BS3D, bublinková střílečka ve 3D od stejného autora:", "BS3D, a 3D bubble shooter by the same author:"),
-        ["about.gameLink"] = ("Vyzkoušejte novou hru", "Try the new game"),
         ["about.license"] = ("Licence MIT", "MIT License"),
         ["about.close"] = ("Zavřít", "Close"),
 

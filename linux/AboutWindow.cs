@@ -41,13 +41,26 @@ public sealed class AboutWindow : Window
         text.Children.Add(Line(L.Get("about.description"), t.Text, 13, 10));
         text.Children.Add(Line(L.Get("about.unofficial"), t.SecondaryText, 13, 12));
         text.Children.Add(Line(L.Get("about.source"), t.SecondaryText, 13, 0));
-        text.Children.Add(Link(AppInfo.RepositoryUrl, AppInfo.RepositoryUrl, 12));
+        text.Children.Add(Link(AppInfo.RepositoryUrl, AppInfo.RepositoryUrl, 14));
 
-        var scene = new SceneView(TextWidth, scale, t.IsDark) { Margin = new Thickness(0, 0, 0, 6) };
+        var top = new DockPanel();
+        var image = LoadImage();
+        if (image is not null)
+        {
+            var picture = new Image { Source = image, Width = 48, Height = 48, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 16, 0) };
+            DockPanel.SetDock(picture, Dock.Left);
+            top.Children.Add(picture);
+        }
+        top.Children.Add(text);
+
+        // The game's advert: a band of its own between two rules across the whole window, centred, in English
+        var scene = new SceneView(TextWidth, scale, t.IsDark) { Margin = new Thickness(0, 0, 0, 6), HorizontalAlignment = HorizontalAlignment.Center };
         scene.PointerPressed += (_, _) => _ = Launcher.LaunchUriAsync(new Uri(AppInfo.GameUrl));
-        text.Children.Add(scene);
-        text.Children.Add(Line(L.Get("about.game"), t.SecondaryText, 13, 0));
-        text.Children.Add(Link(L.Get("about.gameLink"), AppInfo.GameUrl, 10));
+        var caption = Line(AppInfo.GameCaption, t.SecondaryText, 13, 0);
+        caption.HorizontalAlignment = HorizontalAlignment.Center;
+        caption.TextAlignment = TextAlignment.Center;
+        var gameLink = Link(AppInfo.GameLinkText, AppInfo.GameUrl, 12);
+        gameLink.HorizontalAlignment = HorizontalAlignment.Center;
 
         var close = new Button
         {
@@ -58,23 +71,31 @@ public sealed class AboutWindow : Window
             VerticalAlignment = VerticalAlignment.Center,
         };
         close.Click += (_, _) => Close();
-        var footer = new DockPanel { LastChildFill = true };
+        // Under the text column, like the text above the advert
+        var footer = new DockPanel { LastChildFill = true, Margin = new Thickness(image is null ? 0 : 64, 0, 0, 0) };
         DockPanel.SetDock(close, Dock.Right);
         footer.Children.Add(close);
         footer.Children.Add(Line($"{AppInfo.Copyright} · {L.Get("about.license")}", t.SecondaryText, 12, 0));
-        text.Children.Add(footer);
 
-        var body = new DockPanel { Margin = new Thickness(20, 18, 22, 16) };
-        if (LoadImage() is { } image)
-        {
-            var picture = new Image { Source = image, Width = 48, Height = 48, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 16, 0) };
-            DockPanel.SetDock(picture, Dock.Left);
-            body.Children.Add(picture);
-        }
-        body.Children.Add(text);
+        var body = new StackPanel { Margin = new Thickness(20, 18, 22, 16) };
+        body.Children.Add(top);
+        body.Children.Add(Rule(t, 14));
+        body.Children.Add(scene);
+        body.Children.Add(caption);
+        body.Children.Add(gameLink);
+        body.Children.Add(Rule(t, 12));
+        body.Children.Add(footer);
 
         Content = new LayoutTransformControl { LayoutTransform = new ScaleTransform(scale, scale), Child = body };
     }
+
+    /// <summary>A thin line across the window, in the colour of the Windows app's menu borders.</summary>
+    private static Border Rule(AppTheme t, double spaceBelow) => new()
+    {
+        Height = 1,
+        Background = t.IsDark ? AppTheme.Brush(70, 70, 70) : AppTheme.Brush(208, 208, 208),
+        Margin = new Thickness(0, 0, 0, spaceBelow),
+    };
 
     private static TextBlock Line(string text, IBrush color, double size, double spaceBelow, FontWeight weight = FontWeight.Normal) => new()
     {

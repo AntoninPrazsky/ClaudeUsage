@@ -12,6 +12,10 @@ public static class AppInfo
     /// <summary>The latest release of BS3D, the game the About window's animation advertises; it opens in the browser.</summary>
     public const string GameUrl = "https://github.com/AntoninPrazsky/BS3D/releases/latest";
 
+    /// <summary>The line under the animation and its link: English in either UI language.</summary>
+    public const string GameCaption = "BS3D, a 3D bubble shooter by the same author";
+    public const string GameLinkText = "Try the new game";
+
     /// <summary>The version the build was given (a release takes it from its tag), as major.minor.patch.</summary>
     public static string Version { get; } = Assembly.GetEntryAssembly()?.GetName().Version is { } v
         ? v.Build >= 0 ? $"{v.Major}.{v.Minor}.{v.Build}" : $"{v.Major}.{v.Minor}"
