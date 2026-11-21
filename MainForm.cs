@@ -269,6 +269,8 @@ public sealed class MainForm : Form
         _status.Anchor = AnchorStyles.Left;
 
         _refreshButton.AutoSize = true;
+        // Also shrink, so the button follows a smaller text size or a shorter caption and the room beside it is known.
+        _refreshButton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         _refreshButton.FlatStyle = FlatStyle.Flat;
         _refreshButton.FlatAppearance.BorderSize = 1;
         _refreshButton.UseVisualStyleBackColor = false;
@@ -355,7 +357,7 @@ public sealed class MainForm : Form
         _refreshButton.Text = L.Get("button.refresh");
 
         if (_snapshot is not null) Render(_snapshot);
-        UpdateStatus();
+        FitStatus(); // the button's caption changed, and with it the room for the status text
         UpdateTray();
     }
 
@@ -497,15 +499,28 @@ public sealed class MainForm : Form
         _footer.Width = width;
         _footer.MinimumSize = new Size(width, 0);
         _footer.Margin = new Padding(0, Px(4), 0, 0);
+        _status.Margin = new Padding(0, 0, Px(8), 0);
         _error.MaximumSize = new Size(width, 0);
         _error.Margin = new Padding(0, 0, 0, Px(10));
 
         _sessionRow.ApplyScale(width, _scale, DeviceDpi);
         _creditsRow.ApplyScale(width, _scale, DeviceDpi);
         foreach (var row in _weeklyByKey.Values) row.ApplyScale(width, _scale, DeviceDpi);
+        FitStatus();
 
         ResumeLayout(true);
         PositionRoot();
+    }
+
+    /// <summary>
+    /// Caps the status text at the room beside the Refresh button, so a long text wraps instead of widening the window
+    /// and pushing the button out. The button's width follows the language and the text size, so this runs after both.
+    /// </summary>
+    private void FitStatus()
+    {
+        var room = ContentPx - _refreshButton.PreferredSize.Width - _status.Margin.Horizontal;
+        _status.MaximumSize = new Size(Math.Max(room, Px(100)), 0);
+        UpdateStatus();
     }
 
     protected override void OnDpiChanged(DpiChangedEventArgs e)
@@ -742,7 +757,11 @@ public sealed class MainForm : Form
         parts.Add(wait > TimeSpan.Zero
             ? L.F(_rateLimited ? "status.rateLimited" : _nextForReset ? "status.nextReset" : "status.next", FormatWait(wait).Replace(' ', '\u00A0'))
             : L.Get("status.refreshing"));
-        _status.Text = string.Join(" · ", parts);
+        // One line when it fits beside the button; otherwise two, broken at the dot rather than at whatever word reaches
+        // the edge: when it was updated above, the next check below. MeasureText's padding errs towards two lines.
+        var line = string.Join(" · ", parts);
+        var room = _status.MaximumSize.Width;
+        _status.Text = room > 0 && TextRenderer.MeasureText(line, _status.Font).Width > room ? string.Join("\n", parts) : line;
         _status.ForeColor = _rateLimited ? Color.FromArgb(240, 140, 0) : Theme.Current.SecondaryText;
     }
 

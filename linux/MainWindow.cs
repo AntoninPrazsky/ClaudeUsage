@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using Avalonia.Threading;
 
 namespace ClaudeUsage;
@@ -298,6 +299,7 @@ public sealed class MainWindow : Window
         _refreshButton.Padding = new Thickness(10, 4);
         _refreshButton.VerticalAlignment = VerticalAlignment.Center;
         _refreshButton.Click += async (_, _) => await FetchAsync();
+        _refreshButton.SizeChanged += (_, _) => UpdateStatus(); // a new caption changes the room for the status text
         Grid.SetColumn(_refreshButton, 1);
 
         _footer.Children.Add(_status);
@@ -711,8 +713,20 @@ public sealed class MainWindow : Window
         parts.Add(wait > TimeSpan.Zero
             ? L.F(_rateLimited ? "status.rateLimited" : _nextForReset ? "status.nextReset" : "status.next", FormatWait(wait).Replace(' ', '\u00A0'))
             : L.Get("status.refreshing"));
-        _status.Text = string.Join(" · ", parts);
+        // One line when it fits beside the button; otherwise two, broken at the dot rather than at whatever word reaches
+        // the edge: when it was updated above, the next check below. The same rule as in the Windows app.
+        var line = string.Join(" · ", parts);
+        _status.Text = FitsBesideButton(line) ? line : string.Join("\n", parts);
         _status.Foreground = _rateLimited ? AppTheme.Warning : AppTheme.Current.SecondaryText;
+    }
+
+    /// <summary>Whether the text fits on one line beside the Refresh button (true until the button has been laid out).</summary>
+    private bool FitsBesideButton(string text)
+    {
+        if (_refreshButton.Bounds.Width <= 0) return true;
+        var room = ContentWidth - _refreshButton.Bounds.Width - _status.Margin.Right;
+        using var layout = new TextLayout(text, new Typeface(_status.FontFamily, _status.FontStyle, _status.FontWeight), _status.FontSize, null);
+        return layout.WidthIncludingTrailingWhitespace <= room;
     }
 
     private static string FormatWait(TimeSpan wait)
