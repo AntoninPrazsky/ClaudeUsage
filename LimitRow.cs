@@ -187,30 +187,49 @@ public sealed class LimitRow : TableLayoutPanel
         {
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
+            // Pixel centres at half coordinates, so a shape on (0, 0, Width, Height) covers the control's pixels exactly.
+            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
             g.Clear(Theme.Current.Background);
 
-            var rect = new Rectangle(0, 0, Width - 1, Height - 1);
-            var radius = rect.Height;
-            using var track = Rounded(rect, radius);
+            float width = Width, height = Height;
+            if (width <= 0 || height <= 0) return;
             using var trackBrush = new SolidBrush(Theme.Current.Track);
-            g.FillPath(trackBrush, track);
+            using (var track = Fill(width, height, width)) g.FillPath(trackBrush, track);
 
-            var fillWidth = (int)Math.Round(rect.Width * _percent / 100.0);
-            if (fillWidth <= 0) return;
-            g.SetClip(track);
+            if (_percent <= 0) return;
+            // At least one bar height, so a small value still shows its rounded end, as on Linux.
+            var fillWidth = Math.Max((float)(width * _percent / 100.0), height);
             using var fillBrush = new SolidBrush(FillColor);
-            g.FillRectangle(fillBrush, new Rectangle(rect.X, rect.Y, Math.Max(fillWidth, radius), rect.Height + 1));
-            g.ResetClip();
+            using var fill = Fill(width, height, fillWidth);
+            g.FillPath(fillBrush, fill);
         }
 
-        private static GraphicsPath Rounded(Rectangle r, int radius)
+        /// <summary>
+        /// The track's shape (a bar with round ends) cut off at <paramref name="fillWidth"/>: the fill is its own anti-aliased
+        /// path rather than a rectangle clipped by the track, because a clip in GDI+ is a hard pixel mask and left the fill's
+        /// round end jagged and a row short of the track's. Its right end is flat, or follows the track's round end near 100 %.
+        /// </summary>
+        private static GraphicsPath Fill(float width, float height, float fillWidth)
         {
-            var d = Math.Min(radius, Math.Min(r.Width, r.Height));
+            var r = Math.Min(height, width) / 2;
+            var d = 2 * r;
+            fillWidth = Math.Clamp(fillWidth, d, width);
             var path = new GraphicsPath();
-            path.AddArc(r.X, r.Y, d, d, 180, 90);
-            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+            path.AddArc(0, 0, d, d, 90, 180); // the left end, from the bottom over the left to the top
+            var capStart = width - r;
+            if (fillWidth <= capStart)
+            {
+                path.AddLine(r, 0, fillWidth, 0);
+                path.AddLine(fillWidth, 0, fillWidth, height);
+            }
+            else
+            {
+                // Inside the right end: follow its arc down to where x = fillWidth crosses it, then straight down.
+                var angle = (float)(Math.Acos(Math.Min(1, (fillWidth - capStart) / r)) * 180 / Math.PI);
+                path.AddLine(r, 0, capStart, 0);
+                path.AddArc(width - d, 0, d, d, 270, 90 - angle);
+                path.AddArc(width - d, 0, d, d, angle, 90 - angle);
+            }
             path.CloseFigure();
             return path;
         }
