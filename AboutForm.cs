@@ -1,10 +1,14 @@
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 
 namespace ClaudeUsage;
 
 /// <summary>
-/// The About window: what the app is and its version, that it is unofficial, where its source lives, and its licence.
-/// Drawn in the current theme and at the main window's text size, scaled by hand like the main window.
+/// The About window: what the app is and its version, that it is unofficial, where its source lives, and its licence,
+/// then a little animation with a link to the author's game (<see cref="AboutScene"/>). Drawn in the current theme and
+/// at the main window's text size, scaled by hand like the main window.
 /// </summary>
 public sealed class AboutForm : Form
 {
@@ -49,27 +53,37 @@ public sealed class AboutForm : Form
             Margin = new Padding(0, Px(2), Px(16), 0),
         };
         layout.Controls.Add(picture, 0, 0);
-        layout.SetRowSpan(picture, 7);
+        layout.SetRowSpan(picture, 6);
 
         layout.Controls.Add(Line(AppInfo.Name, t.Text, new Font("Segoe UI Semibold", 13f * scale), 0), 1, 0);
         layout.Controls.Add(Line(L.F("about.version", AppInfo.Version), t.SecondaryText, Font, Px(10)), 1, 1);
         layout.Controls.Add(Line(L.Get("about.description"), t.Text, Font, Px(10)), 1, 2);
         layout.Controls.Add(Line(L.Get("about.unofficial"), t.SecondaryText, Font, Px(12)), 1, 3);
         layout.Controls.Add(Line(L.Get("about.source"), t.SecondaryText, Font, 0), 1, 4);
+        layout.Controls.Add(Link(AppInfo.RepositoryUrl, AppInfo.RepositoryUrl, Px(16)), 1, 5);
 
-        var link = new LinkLabel
+        // The game's advert: a band of its own between two rules across the whole window, centred, in English
+        AddSpanning(layout, Rule(Px(14)), 6);
+        var scene = new SceneView(Px(TextWidth), t.IsDark) { Margin = new Padding(0, 0, 0, Px(6)), Anchor = AnchorStyles.None };
+        scene.Click += (_, _) => Open(AppInfo.GameUrl);
+        AddSpanning(layout, scene, 7);
+        var caption = Line(AppInfo.GameCaption, t.SecondaryText, Font, 0);
+        caption.Anchor = AnchorStyles.None;
+        AddSpanning(layout, caption, 8);
+        var gameLink = Link(AppInfo.GameLinkText, AppInfo.GameUrl, Px(14));
+        gameLink.Anchor = AnchorStyles.None;
+        AddSpanning(layout, gameLink, 9);
+        AddSpanning(layout, Rule(Px(12)), 10);
+
+        // Its minimum width keeps the text column the full width whatever the language wraps the text to
+        var footer = new TableLayoutPanel
         {
-            Text = AppInfo.RepositoryUrl,
             AutoSize = true,
-            LinkColor = t.IsDark ? Color.FromArgb(110, 170, 255) : Color.FromArgb(0, 95, 184),
-            ActiveLinkColor = t.IsDark ? Color.FromArgb(150, 195, 255) : Color.FromArgb(0, 70, 140),
-            VisitedLinkColor = t.IsDark ? Color.FromArgb(110, 170, 255) : Color.FromArgb(0, 95, 184),
-            Margin = new Padding(0, Px(2), 0, Px(12)),
+            ColumnCount = 2,
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty,
+            MinimumSize = new Size(Px(TextWidth), 0),
         };
-        link.LinkClicked += (_, _) => Process.Start(new ProcessStartInfo(AppInfo.RepositoryUrl) { UseShellExecute = true });
-        layout.Controls.Add(link, 1, 5);
-
-        var footer = new TableLayoutPanel { AutoSize = true, ColumnCount = 2, Dock = DockStyle.Fill, Margin = Padding.Empty };
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         footer.Controls.Add(Line($"{AppInfo.Copyright} · {L.Get("about.license")}", t.SecondaryText, Font, 0), 0, 0);
@@ -90,7 +104,7 @@ public sealed class AboutForm : Form
         close.FlatAppearance.MouseOverBackColor = t.MenuHover;
         close.FlatAppearance.MouseDownBackColor = t.MenuBorder;
         footer.Controls.Add(close, 1, 0);
-        layout.Controls.Add(footer, 1, 6);
+        layout.Controls.Add(footer, 1, 11);
 
         AcceptButton = close;
         CancelButton = close;
@@ -113,5 +127,116 @@ public sealed class AboutForm : Form
         Margin = new Padding(0, 0, 0, spaceBelow),
     };
 
+    /// <summary>A thin line across the window, in the colour of the menus' borders.</summary>
+    private Panel Rule(int spaceBelow) => new()
+    {
+        Height = Math.Max(1, Px(1)),
+        BackColor = Theme.Current.MenuBorder,
+        Anchor = AnchorStyles.Left | AnchorStyles.Right,
+        Margin = new Padding(0, 0, 0, spaceBelow),
+    };
+
+    private static void AddSpanning(TableLayoutPanel layout, Control control, int row)
+    {
+        layout.Controls.Add(control, 0, row);
+        layout.SetColumnSpan(control, 2);
+    }
+
+    private LinkLabel Link(string text, string url, int spaceBelow)
+    {
+        var dark = Theme.Current.IsDark;
+        var link = new LinkLabel
+        {
+            Text = text,
+            AutoSize = true,
+            LinkColor = dark ? Color.FromArgb(110, 170, 255) : Color.FromArgb(0, 95, 184),
+            ActiveLinkColor = dark ? Color.FromArgb(150, 195, 255) : Color.FromArgb(0, 70, 140),
+            VisitedLinkColor = dark ? Color.FromArgb(110, 170, 255) : Color.FromArgb(0, 95, 184),
+            Margin = new Padding(0, Px(2), 0, spaceBelow),
+        };
+        link.LinkClicked += (_, _) => Open(url);
+        return link;
+    }
+
+    private static void Open(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+
     private int Px(int value) => (int)Math.Round(value * _scale * DeviceDpi / 96f);
+
+    /// <summary>
+    /// Shows <see cref="AboutScene"/> as large as fits <paramref name="width"/> at a whole-number zoom, so its pixels stay
+    /// square and even, and redraws it about 30 times a second while the window is open.
+    /// </summary>
+    private sealed class SceneView : Control
+    {
+        private readonly AboutScene _scene;
+        private readonly int _zoom;
+        private readonly Bitmap _bitmap;
+        private readonly System.Windows.Forms.Timer _timer = new() { Interval = 33 };
+        private readonly Stopwatch _clock = new();
+
+        public SceneView(int width, bool dark)
+        {
+            var (zoom, w, h) = AboutScene.Fit(width);
+            _zoom = zoom;
+            _scene = new AboutScene(w, h, dark);
+            _bitmap = new Bitmap(_scene.Width, _scene.Height, PixelFormat.Format32bppRgb);
+            Size = new Size(_scene.Width * zoom, _scene.Height * zoom);
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+            Cursor = Cursors.Hand;
+            AccessibleRole = AccessibleRole.Animation;
+            AccessibleName = AppInfo.GameLinkText;
+            _timer.Tick += (_, _) => NextFrame();
+            NextFrame();
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            _clock.Start();
+            _timer.Start();
+        }
+
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            _timer.Stop();
+            _clock.Stop();
+            base.OnHandleDestroyed(e);
+        }
+
+        private void NextFrame()
+        {
+            _scene.Render(_clock.Elapsed.TotalSeconds);
+            var data = _bitmap.LockBits(new Rectangle(0, 0, _bitmap.Width, _bitmap.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+            try
+            {
+                for (var y = 0; y < _scene.Height; y++)
+                {
+                    Marshal.Copy(_scene.Pixels, y * _scene.Width, data.Scan0 + y * data.Stride, _scene.Width);
+                }
+            }
+            finally
+            {
+                _bitmap.UnlockBits(data);
+            }
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.PixelOffsetMode = PixelOffsetMode.Half; // without it the first row and column come out half a pixel short
+            g.DrawImage(_bitmap, new Rectangle(0, 0, _bitmap.Width * _zoom, _bitmap.Height * _zoom));
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _timer.Dispose();
+                _bitmap.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+    }
 }

@@ -23,7 +23,7 @@ This is an unofficial tool for developers and other technical users. It is not a
 - **Light and dark theme** (Settings → Theme). The default follows the system: the Windows app mode, switching live when Windows does; on Linux the desktop's light/dark preference.
 - **Text size** from 100 % to 150 % (Settings → Text size), on top of the monitor's DPI scaling.
 - Always-on-top toggle.
-- **About** (Help → About…, also in the tray menu): the version, what the app is, that it is unofficial, and a link to this repository.
+- **About** (Help → About…, also in the tray menu): the version, what the app is, that it is unofficial, and a link to this repository. Below that, a small retro 3D animation that the app draws itself (no 3D library, the same pixels on Windows and Linux) and a link to the author's game, [BS3D](https://github.com/AntoninPrazsky/BS3D).
 - Zero configuration: it reuses the Claude Code login.
 
 ## Requirements
@@ -95,7 +95,7 @@ If the refresh fails (for example the refresh token expired too; those last abou
 
 ### Privacy
 
-- Network access is limited to `api.anthropic.com` and `platform.claude.com`. There is no telemetry.
+- Network access is limited to `api.anthropic.com` and `platform.claude.com`. There is no telemetry. The links in the About window open in your browser.
 - The only files touched are `.credentials.json` (read on every refresh, written only when a token is refreshed; on Linux it stays readable by your user only) and the app's own settings file (see below).
 
 ## Settings
@@ -153,6 +153,7 @@ Releases are built by GitHub Actions from the tagged commit (`.github/workflows/
 | `Program.cs` | Entry point |
 | `MainForm.cs` | Window, menu, tray icon, timers, rendering |
 | `AboutForm.cs` | The About window |
+| `AboutScene.cs` | The About window's animation: a small software renderer, shared with the Linux front end |
 | `LimitRow.cs` | One limit row (name, percentage, bar, reset time) |
 | `Localization.cs` | UI strings in English and Czech |
 | `AppInfo.cs` | Name, version, copyright and repository link for the About window |
