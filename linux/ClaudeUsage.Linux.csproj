@@ -18,6 +18,7 @@
 
   <!-- The platform-independent core is shared with the Windows app in the repository root. -->
   <ItemGroup>
+    <Compile Include="..\AboutScene.cs" Link="Core\AboutScene.cs" />
     <Compile Include="..\AppInfo.cs" Link="Core\AppInfo.cs" />
     <Compile Include="..\AppSettings.cs" Link="Core\AppSettings.cs" />
     <Compile Include="..\CredentialStore.cs" Link="Core\CredentialStore.cs" />

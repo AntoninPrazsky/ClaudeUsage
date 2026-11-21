@@ -9,6 +9,9 @@ public static class AppInfo
 
     public const string RepositoryUrl = "https://github.com/AntoninPrazsky/ClaudeUsage";
 
+    /// <summary>The latest release of BS3D, the game the About window's animation advertises; it opens in the browser.</summary>
+    public const string GameUrl = "https://github.com/AntoninPrazsky/BS3D/releases/latest";
+
     /// <summary>The version the build was given (a release takes it from its tag), as major.minor.patch.</summary>
     public static string Version { get; } = Assembly.GetEntryAssembly()?.GetName().Version is { } v
         ? v.Build >= 0 ? $"{v.Major}.{v.Minor}.{v.Build}" : $"{v.Major}.{v.Minor}"
